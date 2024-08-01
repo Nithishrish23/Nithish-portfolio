@@ -10,6 +10,8 @@ cursor.execute('''
     id SERIAL PRIMARY KEY ,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
+    country TEXT NOT NULL,
+    mobile TEXT NOT NULL,
     message TEXT NOT NULL
     )''')
 con.commit()
@@ -19,11 +21,13 @@ def homepage():
     if request.method == "POST":
         name=request.form["fullname"]
         email=request.form["email"]
+        country=request.form["country"]
+        mobile=request.form["mobile"]
         message=request.form["message"]
         cursor.execute('''
-        INSERT INTO profile (name, email,message)
-            VALUES (%s, %s, %s)
-        ''', (name, email,message))
+        INSERT INTO profile (name, email,country,mobile,message)
+            VALUES (%s, %s, %s, %s, %s)
+        ''', (name, email,country,mobile,message))
         con.commit()
         return render_template('index.html',success=True)
     return render_template('index.html')
