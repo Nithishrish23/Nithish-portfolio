@@ -1,13 +1,13 @@
 from flask import Flask, render_template, url_for, request
-import sqlite3
+import psycopg2
 
 app = Flask(__name__)
 
-con=sqlite3.connect(database="profile_connection.db", check_same_thread=False)
+con=psycopg2.connect(database="profiledb_h2tv", user="nithish",password="o5hqAMhiQNe7RvYU2YO9yfKQLqU3gyjw",host="dpg-cqliosg8fa8c73avo4ag-a.oregon-postgres.render.com",port="5432")
 cursor=con.cursor()
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS profile(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY ,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
     message TEXT NOT NULL
@@ -22,10 +22,11 @@ def homepage():
         message=request.form["message"]
         cursor.execute('''
         INSERT INTO profile (name, email,message)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
         ''', (name, email,message))
         con.commit()
         return render_template('index.html',success=True)
     return render_template('index.html')
 
-
+if __name__=="__main__":
+    app.run(debug=True)
