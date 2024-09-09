@@ -3,7 +3,7 @@ from flask import Flask, render_template, url_for, request,jsonify
 # import psycopg2
 #
 app = Flask(__name__)
-CORS(app)
+# CORS(app)
 #
 # con=psycopg2.connect(database="profiledb_h2tv", user="nithish",password="o5hqAMhiQNe7RvYU2YO9yfKQLqU3gyjw",host="dpg-cqliosg8fa8c73avo4ag-a.oregon-postgres.render.com",port="5432")
 # cursor=con.cursor()
