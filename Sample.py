@@ -1,5 +1,5 @@
 from flask import Flask, render_template, url_for, request,jsonify
-from flask_cors import CORS
+# from flask_cors import CORS
 # import psycopg2
 #
 app = Flask(__name__)
