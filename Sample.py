@@ -9,7 +9,8 @@ def homepage():
 
 @app.route('/hello',methods=['GET', 'POST'])
 def home():
-    return jsonify(message="RajakumariExim")
+    return jsonify(message="NithishKumar PS")
 
 if __name__=="__main__":
     app.run(debug=True)
+
