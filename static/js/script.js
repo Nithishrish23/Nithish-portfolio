@@ -1,99 +1,45 @@
 'use strict';
 
-// Element toggle function
-const elementToggleFunc = function(elem) {
-  elem.classList.toggle("active");
-}
+const toggle = (elem) => elem?.classList.toggle('active');
+const sidebar = document.querySelector('[data-sidebar]');
+document.querySelector('[data-sidebar-btn]')?.addEventListener('click', () => toggle(sidebar));
 
-// Sidebar variables
-const sidebar = document.querySelector("[data-sidebar]");
-const sidebarBtn = document.querySelector("[data-sidebar-btn]");
-sidebarBtn.addEventListener("click", function() {
-  elementToggleFunc(sidebar);
+const navigationLinks = document.querySelectorAll('[data-nav-link]');
+const pages = document.querySelectorAll('[data-page]');
+navigationLinks.forEach((link) => link.addEventListener('click', () => {
+  const target = link.textContent.trim().toLowerCase();
+  const targetPage = target === 'view resume' ? 'resume' : target;
+  pages.forEach((page) => page.classList.toggle('active', page.dataset.page === targetPage));
+  navigationLinks.forEach((nav) => nav.classList.toggle('active', nav === link || (target === 'view resume' && nav.textContent.trim() === 'Resume')));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}));
+
+const form = document.querySelector('[data-form]');
+const formInputs = document.querySelectorAll('[data-form-input]');
+const formBtn = document.querySelector('[data-form-btn]');
+const feedback = document.querySelector('[data-form-feedback]');
+const updateFormState = () => { if (form && formBtn) formBtn.disabled = !form.checkValidity(); };
+formInputs.forEach((input) => input.addEventListener('input', updateFormState));
+
+form?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!form.checkValidity()) return;
+  formBtn.disabled = true;
+  const label = formBtn.querySelector('span');
+  const original = label?.textContent || 'Send Message';
+  if (label) label.textContent = 'Sending…';
+  if (feedback) feedback.textContent = '';
+  try {
+    const response = await fetch('/', { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.success) throw new Error(result.message || 'Unable to submit the form.');
+    if (feedback) { feedback.textContent = result.message || 'Thanks! Your message has been received.'; feedback.className = 'form-feedback success'; }
+    form.reset();
+  } catch (error) {
+    if (feedback) { feedback.textContent = error.message || 'Something went wrong. Please try again.'; feedback.className = 'form-feedback error'; }
+  } finally {
+    if (label) label.textContent = original;
+    updateFormState();
+  }
 });
-
-// Testimonials modal variables
-const testimonialsItem = document.querySelectorAll("[data-testimonials-item]");
-const modalContainer = document.querySelector("[data-modal-container]");
-const overlay = document.querySelector("[data-overlay]");
-const modalCloseBtn = document.querySelector("[data-modal-close-btn]");
-const modalImg = document.querySelector("[data-modal-img]");
-const modalTitle = document.querySelector("[data-modal-title]");
-const modalText = document.querySelector("[data-modal-text]");
-
-// Testimonials modal toggle function
-const testimonialsModalFunc = function() {
-  modalContainer.classList.toggle("active");
-  overlay.classList.toggle("active");
-}
-
-// Add click event to all testimonials items
-for (let i = 0; i < testimonialsItem.length; i++) {
-  testimonialsItem[i].addEventListener("click", function() {
-    modalImg.src = this.querySelector("[data-testimonials-avatar]").src;
-    modalImg.alt = this.querySelector("[data-testimonials-avatar]").alt;
-    modalTitle.innerHTML = this.querySelector("[data-testimonials-title]").innerHTML;
-    modalText.innerHTML = this.querySelector("[data-testimonials-text]").innerHTML;
-    testimonialsModalFunc();
-  });
-}
-
-// Add click event to modal close button and overlay
-modalCloseBtn.addEventListener("click", testimonialsModalFunc);
-overlay.addEventListener("click", testimonialsModalFunc);
-
-// Custom select variables
-const select = document.querySelector("[data-select]");
-const selectItems = document.querySelectorAll("[data-select-item]");
-const selectValue = document.querySelector("[data-select-value]");
-
-// Custom select toggle function
-select.addEventListener("click", function() {
-  elementToggleFunc(this);
-});
-
-// Add event to all select items
-for (let i = 0; i < selectItems.length; i++) {
-  selectItems[i].addEventListener("click", function() {
-    let selectedValue = this.innerText.toLowerCase();
-    selectValue.innerText = this.innerText;
-    elementToggleFunc(select);
-    // Additional function call or action related to the select item if needed
-  });
-}
-
-// Contact form variables
-const form = document.querySelector("[data-form]");
-const formInputs = document.querySelectorAll("[data-form-input]");
-const formBtn = document.querySelector("[data-form-btn]");
-
-// Add event to all form input fields for validation
-for (let i = 0; i < formInputs.length; i++) {
-  formInputs[i].addEventListener("input", function() {
-    if (form.checkValidity()) {
-      formBtn.removeAttribute("disabled");
-    } else {
-      formBtn.setAttribute("disabled", "");
-    }
-  });
-}
-
-// Page navigation variables
-const navigationLinks = document.querySelectorAll("[data-nav-link]");
-const pages = document.querySelectorAll("[data-page]");
-
-// Add event to all navigation links
-for (let i = 0; i < navigationLinks.length; i++) {
-  navigationLinks[i].addEventListener("click", function() {
-    for (let j = 0; j < pages.length; j++) {
-      if (this.innerHTML.toLowerCase() === pages[j].dataset.page) {
-        pages[j].classList.add("active");
-        navigationLinks[i].classList.add("active");
-        window.scrollTo(0, 0);
-      } else {
-        pages[j].classList.remove("active");
-        navigationLinks[i].classList.remove("active");
-      }
-    }
-  });
-}
+updateFormState();
