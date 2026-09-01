@@ -1,0 +1,7 @@
+# Legacy files are intentionally excluded from Vercel builds.
+# Keep deployment input limited to the React/Vite application and required API.
+static/
+*.py
+requirements.txt
+__pycache__/
+.idea/
