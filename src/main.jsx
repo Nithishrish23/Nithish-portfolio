@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Github, Linkedin, Mail, MapPin, Phone, Send, Code2, BrainCircuit, Smartphone, Database, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { Mail, MapPin, Phone, Send, Code2, BrainCircuit, Smartphone, Database, ExternalLink, CheckCircle2 } from 'lucide-react';
 import './styles.css';
 
 const experience = [
@@ -47,7 +47,10 @@ function App() {
         <a href="tel:+917708358913"><Phone size={17}/> +91 7708358913</a>
         <span><MapPin size={17}/> Chennai, Tamil Nadu, India</span>
       </div>
-      <div className="socials"><a href="https://github.com/Nithishrish23" target="_blank" rel="noreferrer"><Github/></a><a href="https://www.linkedin.com/in/nithishrish/" target="_blank" rel="noreferrer"><Linkedin/></a></div>
+      <div className="socials">
+        <a href="https://github.com/Nithishrish23" target="_blank" rel="noreferrer" aria-label="GitHub"><span className="social-mark">GH</span></a>
+        <a href="https://www.linkedin.com/in/nithishrish/" target="_blank" rel="noreferrer" aria-label="LinkedIn"><span className="social-mark">in</span></a>
+      </div>
     </aside>
 
     <main className="content glass">
