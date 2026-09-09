@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createRoot } from 'react-dom/client';
 import { ArrowUpRight, BrainCircuit, Bot, ChevronDown, Code2, ExternalLink, Github, Layers3, Mail, MapPin, Menu, Send, ShieldCheck, Sparkles, X } from 'lucide-react';
 import PortfolioScene from './PortfolioScene';
 import './styles.css';
