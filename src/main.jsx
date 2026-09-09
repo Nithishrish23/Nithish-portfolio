@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowUpRight, BrainCircuit, Bot, ChevronDown, Code2, ExternalLink, Github, Layers3, Mail, MapPin, Menu, Send, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { ArrowUpRight, BrainCircuit, Bot, Code2, ExternalLink, Github, Mail, MapPin, Menu, Send, ShieldCheck, X } from 'lucide-react';
 import PortfolioScene from './PortfolioScene';
+import AvatarChat from './AvatarChat';
 import './styles.css';
+import './ai-avatar.css';
 
 const PROFILE_IMAGE = 'https://raw.githubusercontent.com/Nithishrish23/Nithish-portfolio/98f873233766d9efe6688b559262306092e7545d/static/images/1727781988320.jpg';
 const EMAIL = 'nithishkumar140700@gmail.com';
@@ -53,25 +55,22 @@ function App() {
     setSending(true);
     setStatus({ type: '', message: '' });
     try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
+      const res = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) throw new Error(data.message || 'Unable to save your message.');
-
       setStatus({ type: 'success', message: 'Message saved successfully. I will get back to you soon.' });
       setForm({ fullname: '', email: '', country: '', mobile: '', message: '' });
     } catch (err) {
       setStatus({ type: 'error', message: err.message });
-    } finally {
-      setSending(false);
-    }
+    } finally { setSending(false); }
   };
 
   return <div className="site">
-    <div className={`intro-screen ${intro ? 'show' : ''}`} aria-hidden={!intro}><div className="intro-ring"><img src={PROFILE_IMAGE} alt=""/></div><div className="intro-name">NITHISH KUMAR</div><div className="intro-status"><span/> INITIALIZING PORTFOLIO</div></div>
+    <div className={`intro-screen ${intro ? 'show' : ''}`} aria-hidden={!intro}>
+      <div className="intro-ring"><img src={PROFILE_IMAGE} alt=""/></div>
+      <div className="intro-name">NITHISH KUMAR</div>
+      <div className="intro-status"><span/> STARTING</div>
+    </div>
     <div className="ambient ambient-a"/><div className="ambient ambient-b"/>
     <header className="nav-wrap"><nav className="nav container">
       <button className="brand" onClick={() => go('home')} aria-label="Back to home"><span className="brand-mark"><img className="brand-photo" src={PROFILE_IMAGE} alt="Nithish Kumar"/><i/></span><span><strong>Nithish Kumar</strong><small>AI ENGINEER · FULL STACK</small></span></button>
@@ -82,9 +81,9 @@ function App() {
 
     <main>
       <section id="home" className="hero container">
-        <div className="hero-copy reveal"><div className="eyebrow"><span/> AI · AUTOMATION · PRODUCT ENGINEERING</div><div className="availability"><b/> AVAILABLE FOR SELECT AI OPPORTUNITIES</div><h1>AI systems.<br/><em>Real products.</em><br/>Built to ship.</h1><p className="hero-text">I'm Nithish Kumar, a Software Engineer II focused on LLM applications, RAG, AI agents, enterprise automation and full-stack systems that turn complex ideas into dependable software.</p><div className="hero-actions"><button className="primary-btn" onClick={() => go('work')}>Explore selected work <ArrowUpRight size={17}/></button><button className="ghost-btn" onClick={() => go('contact')}>Start a conversation</button></div><div className="hero-metrics"><div><strong>4+</strong><span>YEARS ENGINEERING</span></div><div><strong>AI</strong><span>LLM · RAG · AGENTS</span></div><div><strong>FULL</strong><span>STACK DELIVERY</span></div></div></div>
-        <div className="hero-visual"><PortfolioScene/><div className="visual-corner top-left">/ SYSTEM<br/><b>THREE.JS + GLB</b></div><div className="visual-corner bottom-right">INTERACTIVE PROFILE <span>●</span></div><div className="hero-photo-card"><img src={PROFILE_IMAGE} alt="Nithish Kumar portrait"/><div><span>ENGINEER</span><strong>NITHISH KUMAR</strong></div></div></div>
-        <button className="scroll-cue" onClick={() => go('about')}><span>EXPLORE</span><ChevronDown size={17}/></button>
+        <div className="hero-copy reveal"><div className="eyebrow">AI · AUTOMATION · PRODUCT ENGINEERING</div><div className="availability"><b/> AVAILABLE FOR SELECT AI OPPORTUNITIES</div><h1>AI systems.<br/><em>Real products.</em><br/>Built to ship.</h1><p className="hero-text">I'm Nithish Kumar, a Software Engineer II focused on LLM applications, RAG, AI agents, enterprise automation and full-stack systems that turn complex ideas into dependable software.</p><div className="hero-actions"><button className="primary-btn" onClick={() => go('work')}>Explore selected work <ArrowUpRight size={17}/></button><button className="ghost-btn" onClick={() => go('contact')}>Start a conversation</button></div><div className="hero-metrics"><div><strong>4+</strong><span>YEARS ENGINEERING</span></div><div><strong>AI</strong><span>LLM · RAG · AGENTS</span></div><div><strong>FULL</strong><span>STACK DELIVERY</span></div></div></div>
+        <div className="hero-visual"><PortfolioScene/><div className="hero-photo-card"><img src={PROFILE_IMAGE} alt="Nithish Kumar portrait"/><div><span>ENGINEER</span><strong>NITHISH KUMAR</strong></div></div></div>
+        <button className="scroll-cue" onClick={() => go('about')}><span>EXPLORE</span><span className="scroll-line"/></button>
       </section>
 
       <section id="about" className="section container about-section"><div className="section-head"><span className="section-number">01</span><div><p className="section-kicker">THE ENGINEERING APPROACH</p><h2>Intelligence into <span>impact.</span></h2></div><p className="section-note">Model layer, backend, tools, data and interface designed as one system.</p></div><div className="about-grid"><div className="about-statement"><p>I work at the intersection of <strong>AI and product engineering</strong>, with a Python-first approach and a strong focus on reliable execution.</p><p>My work spans conversational AI, Salesforce automation, multi-agent workflows, retrieval systems, computer vision and production web applications.</p><div className="signature-line"><span>CHENNAI · INDIA</span><span>AI · FULL STACK · AUTOMATION</span></div></div><div className="capability-list">{capabilities.map(({ icon: Icon, title, text }) => <article key={title}><Icon size={21}/><div><h3>{title}</h3><p>{text}</p></div><ArrowUpRight size={16}/></article>)}</div></div></section>
@@ -101,6 +100,7 @@ function App() {
     </main>
 
     <footer className="footer container"><div className="footer-brand"><img className="brand-photo" src={PROFILE_IMAGE} alt="Nithish Kumar"/><div><strong>Nithish Kumar</strong><span>AI Engineer · Full Stack Developer</span></div></div><div className="footer-links"><a href="https://github.com/Nithishrish23" target="_blank" rel="noreferrer"><Github size={16}/> GitHub</a><button onClick={() => go('contact')}>Contact</button></div><span className="footer-copy">© 2026 Nithish Kumar</span></footer>
+    <AvatarChat />
   </div>;
 }
 
