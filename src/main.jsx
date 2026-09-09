@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ArrowUpRight, BrainCircuit, Bot, Code2, ExternalLink, Github, Mail, MapPin, Menu, Send, ShieldCheck, X } from 'lucide-react';
 import PortfolioScene from './PortfolioScene';
 import AvatarChat from './AvatarChat';
+import ThemeToggle from './ThemeToggle';
 import './styles.css';
 import './ai-avatar.css';
 
@@ -51,32 +52,24 @@ function App() {
   const setField = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
   const submit = async (e) => {
-    e.preventDefault();
-    setSending(true);
-    setStatus({ type: '', message: '' });
+    e.preventDefault(); setSending(true); setStatus({ type: '', message: '' });
     try {
       const res = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) throw new Error(data.message || 'Unable to save your message.');
       setStatus({ type: 'success', message: 'Message saved successfully. I will get back to you soon.' });
       setForm({ fullname: '', email: '', country: '', mobile: '', message: '' });
-    } catch (err) {
-      setStatus({ type: 'error', message: err.message });
-    } finally { setSending(false); }
+    } catch (err) { setStatus({ type: 'error', message: err.message }); }
+    finally { setSending(false); }
   };
 
   return <div className="site">
-    <div className={`intro-screen ${intro ? 'show' : ''}`} aria-hidden={!intro}>
-      <div className="intro-ring"><img src={PROFILE_IMAGE} alt=""/></div>
-      <div className="intro-name">NITHISH KUMAR</div>
-      <div className="intro-status"><span/> STARTING</div>
-    </div>
+    <div className={`intro-screen ${intro ? 'show' : ''}`} aria-hidden={!intro}><div className="intro-ring"><img src={PROFILE_IMAGE} alt=""/></div><div className="intro-name">NITHISH KUMAR</div><div className="intro-status"><span/> STARTING</div></div>
     <div className="ambient ambient-a"/><div className="ambient ambient-b"/>
     <header className="nav-wrap"><nav className="nav container">
       <button className="brand" onClick={() => go('home')} aria-label="Back to home"><span className="brand-mark"><img className="brand-photo" src={PROFILE_IMAGE} alt="Nithish Kumar"/><i/></span><span><strong>Nithish Kumar</strong><small>AI ENGINEER · FULL STACK</small></span></button>
       <div className={`nav-links ${menuOpen ? 'open' : ''}`}>{['about', 'work', 'experience', 'contact'].map((item) => <button key={item} onClick={() => go(item)}>{item}</button>)}<a href="https://github.com/Nithishrish23" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={14}/></a></div>
-      <button className="menu-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation">{menuOpen ? <X/> : <Menu/>}</button>
-      <button className="nav-cta" onClick={() => go('contact')}>Let's connect <ArrowUpRight size={15}/></button>
+      <div className="nav-actions"><ThemeToggle/><button className="menu-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation">{menuOpen ? <X/> : <Menu/>}</button><button className="nav-cta" onClick={() => go('contact')}>Let's connect <ArrowUpRight size={15}/></button></div>
     </nav></header>
 
     <main>
