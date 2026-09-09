@@ -36,7 +36,7 @@ const experience = [
   { period: 'JUN 2025 — PRESENT', role: 'Software Engineer - II', company: 'CodeDTX Solutions PVT LTD', text: 'Salesforce API and Metadata integrations, intelligent automation, permission-aware action engines and LLM-powered conversational interfaces.' },
   { period: 'OCT 2024 — JUN 2025', role: 'Team Lead', company: 'PCL INFOTECH PVT LTD', text: 'B2B/B2C e-commerce engineering with Flask, React and PostgreSQL, plus AI agents for business automation.' },
   { period: 'AUG 2023 — OCT 2024', role: 'AI Software Associate', company: 'Green Books', text: 'AI/ML and image-identification software with backend optimization, testing, deployment and security.' },
-  { period: 'DEC 2022 — MAR 2023', role: 'Data Analyst Intern', company: 'Skill-Lync', text: 'Trend and correlation analysis with Tableau and Excel visualizations.' },
+  { period: 'AUG 2022 — APR 2023', role: 'Data Analyst Intern', company: 'Skill-Lync', text: 'Trend and correlation analysis with Tableau and Excel visualizations.' },
 ];
 
 const technologyGroups = [
