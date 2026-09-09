@@ -1,0 +1,72 @@
+/* Premium developer avatar stage: a real environment, not an empty canvas. */
+.hero-visual .scene-shell{
+  background:
+    radial-gradient(circle at 52% 38%, rgba(255,255,255,.98) 0 10%, rgba(224,235,246,.92) 32%, rgba(190,205,220,.74) 55%, rgba(151,169,187,.52) 78%, rgba(111,132,151,.38) 100%),
+    linear-gradient(115deg, rgba(255,255,255,.72), transparent 42%, rgba(70,111,151,.16));
+  isolation:isolate;
+  overflow:hidden;
+}
+.hero-visual .scene-shell::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg, transparent 0 11%, rgba(255,255,255,.28) 11.1% 11.3%, transparent 11.4% 88%, rgba(255,255,255,.22) 88.1% 88.3%, transparent 88.4%),
+    linear-gradient(180deg, rgba(255,255,255,.32), transparent 32%, rgba(47,83,112,.12) 72%, rgba(31,55,75,.18));
+  box-shadow:inset 0 0 110px rgba(20,43,64,.18);
+}
+.hero-visual .scene-shell::after{
+  content:"";
+  position:absolute;
+  left:5%; right:5%; bottom:6%; height:34%;
+  z-index:0;
+  pointer-events:none;
+  background:
+    linear-gradient(175deg, transparent 0 18%, rgba(45,72,94,.13) 18.5% 19%, transparent 19.5%),
+    repeating-linear-gradient(90deg, rgba(48,78,103,.13) 0 1px, transparent 1px 54px),
+    linear-gradient(180deg, rgba(255,255,255,0), rgba(53,78,99,.12));
+  transform:perspective(420px) rotateX(58deg);
+  transform-origin:bottom;
+  mask-image:linear-gradient(to bottom, transparent, #000 28%, #000 78%, transparent);
+}
+.hero-visual .three-canvas{z-index:2}
+.hero-visual .three-canvas::before{
+  content:"";
+  position:absolute;
+  left:50%; bottom:7%; width:31%; height:5%;
+  transform:translateX(-50%);
+  border-radius:50%;
+  background:rgba(22,43,61,.25);
+  filter:blur(15px);
+  z-index:3;
+  pointer-events:none;
+}
+.hero-visual .scene-glow{display:none}
+.hero-visual .scene-label{color:#536b7d;text-shadow:0 1px 2px rgba(255,255,255,.6)}
+.hero-visual .scene-label-top{left:24px;top:22px}
+.hero-visual .scene-label-bottom{right:24px;bottom:22px}
+.hero-visual .hero-photo-card{box-shadow:0 12px 35px rgba(34,58,79,.16)}
+.avatar-stage-chip{
+  position:absolute;z-index:5;left:24px;bottom:22px;
+  display:flex;align-items:center;gap:8px;
+  padding:8px 11px;border:1px solid rgba(49,76,99,.18);
+  border-radius:8px;background:rgba(255,255,255,.66);
+  backdrop-filter:blur(12px);color:#486075;
+  font:600 8px 'JetBrains Mono';letter-spacing:.08em;
+  box-shadow:0 8px 25px rgba(30,55,76,.08);
+}
+.avatar-stage-chip i{width:6px;height:6px;border-radius:50%;background:#2f80ed;box-shadow:0 0 0 4px rgba(47,128,237,.1)}
+.avatar-stage-tech{
+  position:absolute;z-index:5;right:24px;bottom:72px;
+  width:138px;padding:10px 12px;border:1px solid rgba(49,76,99,.16);
+  border-radius:9px;background:rgba(255,255,255,.54);backdrop-filter:blur(10px);
+  color:#587083;font:7px/1.8 'JetBrains Mono';letter-spacing:.08em;
+  box-shadow:0 8px 25px rgba(30,55,76,.07);
+}
+.avatar-stage-tech b{display:block;color:#263f52;font-size:8px;margin-bottom:3px}
+@media(max-width:760px){
+  .avatar-stage-tech{display:none}
+  .avatar-stage-chip{left:14px;bottom:14px}
+}
