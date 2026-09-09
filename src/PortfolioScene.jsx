@@ -66,9 +66,9 @@ export default function PortfolioScene() {
 
     const windowFrame = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
     const windowGlass = new THREE.MeshStandardMaterial({ color: 0xcce5fb, roughness: 0.35, metalness: 0.05, transparent: true, opacity: 0.72 });
-    const window = new THREE.Mesh(new THREE.BoxGeometry(2.65, 3.0, 0.08), windowGlass);
-    window.position.set(-4.2, 1.25, -2.62);
-    stage.add(window);
+    const windowPanel = new THREE.Mesh(new THREE.BoxGeometry(2.65, 3.0, 0.08), windowGlass);
+    windowPanel.position.set(-4.2, 1.25, -2.62);
+    stage.add(windowPanel);
     const frameV = new THREE.Mesh(new THREE.BoxGeometry(0.07, 3.1, 0.14), windowFrame);
     frameV.position.set(-4.2, 1.25, -2.51);
     stage.add(frameV);
