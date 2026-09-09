@@ -41,7 +41,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [intro, setIntro] = useState(true);
   const [form, setForm] = useState({ fullname: '', email: '', country: '', mobile: '', message: '' });
-  const [status, setStatus] = useState({ type: '', message: '', fallback: false });
+  const [status, setStatus] = useState({ type: '', message: '' });
   const [sending, setSending] = useState(false);
 
   useEffect(() => { const timer = setTimeout(() => setIntro(false), 1250); return () => clearTimeout(timer); }, []);
@@ -49,21 +49,25 @@ function App() {
   const setField = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
   const submit = async (e) => {
-    e.preventDefault(); setSending(true); setStatus({ type: '', message: '', fallback: false });
+    e.preventDefault();
+    setSending(true);
+    setStatus({ type: '', message: '' });
     try {
-      const res = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
       const data = await res.json().catch(() => ({}));
-      if (res.ok && !data.fallback) {
-        setStatus({ type: 'success', message: 'Message sent successfully. I will get back to you soon.', fallback: false });
-        setForm({ fullname: '', email: '', country: '', mobile: '', message: '' });
-      } else if (data.fallback) {
-        const subject = encodeURIComponent(`Portfolio enquiry from ${form.fullname}`);
-        const body = encodeURIComponent(`Name: ${form.fullname}\nEmail: ${form.email}\nCountry: ${form.country}\nMobile: ${form.mobile}\n\n${form.message}`);
-        window.location.href = `mailto:${EMAIL}?subject=${subject}&body=${body}`;
-        setStatus({ type: 'success', message: 'Your email app is opening with the message ready to send.', fallback: true });
-      } else throw new Error(data.message || 'Unable to send your message.');
-    } catch (err) { setStatus({ type: 'error', message: err.message, fallback: false }); }
-    finally { setSending(false); }
+      if (!res.ok || !data.success) throw new Error(data.message || 'Unable to save your message.');
+
+      setStatus({ type: 'success', message: 'Message saved successfully. I will get back to you soon.' });
+      setForm({ fullname: '', email: '', country: '', mobile: '', message: '' });
+    } catch (err) {
+      setStatus({ type: 'error', message: err.message });
+    } finally {
+      setSending(false);
+    }
   };
 
   return <div className="site">
@@ -93,10 +97,10 @@ function App() {
 
       <section className="section stack-section"><div className="container"><div className="stack-banner"><div><p className="section-kicker">TECHNOLOGY</p><h2>One stack.<br/><span>Many layers.</span></h2></div><p>Python-first backend engineering combined with modern frontend, AI infrastructure, data systems and cloud tooling.</p></div><div className="skill-cloud">{skills.map(skill => <span key={skill}>{skill}</span>)}</div></div></section>
 
-      <section id="contact" className="section contact-section"><div className="container contact-wrap"><div className="contact-copy"><span className="section-number">05</span><p className="section-kicker">LET'S BUILD</p><h2>Have a hard problem?<br/><span>Let's make it software.</span></h2><p>For AI products, intelligent automation, full-stack systems or engineering opportunities, send a message.</p><div className="direct-contact"><a href={`mailto:${EMAIL}`}><Mail size={17}/> {EMAIL}</a><span><MapPin size={17}/> Chennai, Tamil Nadu, India</span></div></div><form className="contact-form" onSubmit={submit}><div className="form-title"><span>CONTACT</span><b>Tell me what you're building.</b></div><div className="form-row"><input required value={form.fullname} onChange={e => setField('fullname', e.target.value)} placeholder="Full name"/><input required type="email" value={form.email} onChange={e => setField('email', e.target.value)} placeholder="Email address"/></div><div className="form-row"><input required value={form.country} onChange={e => setField('country', e.target.value)} placeholder="Country"/><input required value={form.mobile} onChange={e => setField('mobile', e.target.value)} placeholder="Mobile number"/></div><textarea required value={form.message} onChange={e => setField('message', e.target.value)} placeholder="Tell me about the project or opportunity" rows="6"/><button className="primary-btn send-btn" disabled={sending}>{sending ? 'Preparing…' : <>Send message <Send size={16}/></>}</button>{status.message && <div className={`form-status ${status.type}`}>{status.message}{status.fallback && <a href={`mailto:${EMAIL}`}>Email directly</a>}</div>}</form></div></section>
+      <section id="contact" className="section contact-section"><div className="container contact-wrap"><div className="contact-copy"><span className="section-number">05</span><p className="section-kicker">LET'S BUILD</p><h2>Have a hard problem?<br/><span>Let's make it software.</span></h2><p>For AI products, intelligent automation, full-stack systems or engineering opportunities, send a message.</p><div className="direct-contact"><a href={`mailto:${EMAIL}`}><Mail size={17}/> {EMAIL}</a><span><MapPin size={17}/> Chennai, Tamil Nadu, India</span></div></div><form className="contact-form" onSubmit={submit}><div className="form-title"><span>CONTACT</span><b>Tell me what you're building.</b></div><div className="form-row"><input required value={form.fullname} onChange={e => setField('fullname', e.target.value)} placeholder="Full name"/><input required type="email" value={form.email} onChange={e => setField('email', e.target.value)} placeholder="Email address"/></div><div className="form-row"><input required value={form.country} onChange={e => setField('country', e.target.value)} placeholder="Country"/><input required value={form.mobile} onChange={e => setField('mobile', e.target.value)} placeholder="Mobile number"/></div><textarea required value={form.message} onChange={e => setField('message', e.target.value)} placeholder="Tell me about the project or opportunity" rows="6"/><button className="primary-btn send-btn" disabled={sending}>{sending ? 'Saving…' : <>Send message <Send size={16}/></>}</button>{status.message && <div className={`form-status ${status.type}`}>{status.message}</div>}</form></div></section>
     </main>
 
-    <footer className="footer container"><div className="footer-brand"><img className="brand-photo" src={PROFILE_IMAGE} alt="Nithish Kumar"/><div><strong>Nithish Kumar</strong><span>AI Engineer · Full Stack Developer</span></div></div><div className="footer-links"><a href="https://github.com/Nithishrish23" target="_blank" rel="noreferrer"><Github size={16}/> GitHub</a><a href="https://www.linkedin.com/in/nithishrish/" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={14}/></a><a href={`mailto:${EMAIL}`}><Mail size={16}/> Email</a></div><span className="footer-note">Designed & engineered with intent.</span></footer>
+    <footer className="footer container"><div className="footer-brand"><img className="brand-photo" src={PROFILE_IMAGE} alt="Nithish Kumar"/><div><strong>Nithish Kumar</strong><span>AI Engineer · Full Stack Developer</span></div></div><div className="footer-links"><a href="https://github.com/Nithishrish23" target="_blank" rel="noreferrer"><Github size={16}/> GitHub</a><button onClick={() => go('contact')}>Contact</button></div><span className="footer-copy">© 2026 Nithish Kumar</span></footer>
   </div>;
 }
 
