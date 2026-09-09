@@ -18,6 +18,7 @@ export default function PortfolioScene() {
     let mixer = null;
     let model = null;
     let cleanupPointer = null;
+    let idleTimer = 0;
 
     const start = async () => {
       try {
@@ -32,12 +33,13 @@ export default function PortfolioScene() {
 
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
-        renderer.setSize(Math.max(mount.clientWidth, 1), Math.max(mount.clientHeight, 1));
+        renderer.setSize(Math.max(mount.clientWidth, 1), Math.max(mount.clientHeight, 1), false);
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.15;
         renderer.shadowMap.enabled = false;
         renderer.setClearColor(0x000000, 0);
+        renderer.domElement.setAttribute('aria-hidden', 'true');
         mount.appendChild(renderer.domElement);
 
         scene.add(new THREE.HemisphereLight(0xf4f8ff, 0x6f7c8d, 2.2));
@@ -178,18 +180,20 @@ export default function PortfolioScene() {
 
         const onPointerMove = (event) => {
           const rect = mount.getBoundingClientRect();
+          if (!rect.width || !rect.height) return;
           targetX = THREE.MathUtils.clamp(((event.clientX - rect.left) / rect.width - 0.5) * 2, -1, 1);
           targetY = THREE.MathUtils.clamp(((event.clientY - rect.top) / rect.height - 0.5) * 2, -1, 1);
         };
         const onPointerLeave = () => { targetX = 0; targetY = 0; };
-        mount.addEventListener('pointermove', onPointerMove);
-        mount.addEventListener('pointerleave', onPointerLeave);
+        mount.addEventListener('pointermove', onPointerMove, { passive: true });
+        mount.addEventListener('pointerleave', onPointerLeave, { passive: true });
         cleanupPointer = () => {
           mount.removeEventListener('pointermove', onPointerMove);
           mount.removeEventListener('pointerleave', onPointerLeave);
         };
 
         const resize = () => {
+          if (!renderer) return;
           const width = Math.max(mount.clientWidth, 1);
           const height = Math.max(mount.clientHeight, 1);
           camera.aspect = width / height;
@@ -226,10 +230,20 @@ export default function PortfolioScene() {
       }
     };
 
-    start();
+    const schedule = () => {
+      if (cancelled) return;
+      if ('requestIdleCallback' in window) {
+        idleTimer = window.requestIdleCallback(start, { timeout: 1800 });
+      } else {
+        idleTimer = window.setTimeout(start, 900);
+      }
+    };
+    schedule();
 
     return () => {
       cancelled = true;
+      if ('cancelIdleCallback' in window && typeof idleTimer === 'number') window.cancelIdleCallback(idleTimer);
+      else window.clearTimeout(idleTimer);
       cancelAnimationFrame(raf);
       cleanupPointer?.();
       resizeObserver?.disconnect();
@@ -243,7 +257,14 @@ export default function PortfolioScene() {
   return (
     <div className={`scene-shell ${loaded ? 'is-loaded' : ''} ${failed ? 'is-failed' : ''}`} aria-label="Interactive 3D developer workspace">
       <div ref={mountRef} className="three-canvas" />
-      {!loaded && !failed && <div className="scene-loading" aria-hidden="true"><span>Loading workspace…</span></div>}
+      <div className="workspace-fallback" aria-hidden={loaded}>
+        <div className="fallback-window"><i /><i /><i /></div>
+        <div className="fallback-shelf"><span /><span /><span /></div>
+        <div className="fallback-desk"><div className="fallback-monitor"><b /></div><span /></div>
+        <div className="fallback-person"><img src="https://raw.githubusercontent.com/Nithishrish23/Nithish-portfolio/98f873233766d9efe6688b559262306092e7545d/static/images/1727781988320.jpg" alt="" /></div>
+        <div className="fallback-glow" />
+      </div>
+      {!loaded && !failed && <div className="scene-loading" aria-hidden="true"><span>Preparing workspace</span></div>}
       {failed && <div className="scene-error">Workspace preview unavailable</div>}
     </div>
   );
