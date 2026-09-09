@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import './workspace-fallback.css';
 
 const MODEL_URL = '/nithish-model.glb';
 
@@ -60,7 +61,6 @@ export default function PortfolioScene() {
         const wall = new THREE.Mesh(new THREE.PlaneGeometry(12, 8), new THREE.MeshStandardMaterial({ color: 0xf3f7fb, roughness: 1 }));
         wall.position.set(0, 1.75, -2.75);
         stage.add(wall);
-
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 10), new THREE.MeshStandardMaterial({ color: 0xdfe8f0, roughness: 0.94 }));
         floor.rotation.x = -Math.PI / 2;
         floor.position.y = -2.0;
@@ -131,7 +131,6 @@ export default function PortfolioScene() {
         const modelRoot = new THREE.Group();
         modelRoot.position.set(0.8, -0.18, 0.12);
         stage.add(modelRoot);
-
         const avatarShadow = new THREE.Mesh(new THREE.CircleGeometry(0.95, 32), new THREE.MeshBasicMaterial({ color: 0x294866, transparent: true, opacity: 0.18, depthWrite: false }));
         avatarShadow.rotation.x = -Math.PI / 2;
         avatarShadow.scale.set(1.55, 0.7, 1);
@@ -163,7 +162,6 @@ export default function PortfolioScene() {
             model.scale.setScalar(scale);
             model.position.set(-center.x * scale, -center.y * scale - 0.04, -center.z * scale);
             modelRoot.add(model);
-
             if (gltf.animations?.length) {
               mixer = new THREE.AnimationMixer(model);
               const idle = gltf.animations.find((clip) => /idle|stand|breath|casual|relax/i.test(clip.name)) || gltf.animations[0];
