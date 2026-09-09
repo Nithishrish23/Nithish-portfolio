@@ -1,7 +1,5 @@
-# Legacy files are intentionally excluded from Vercel builds.
-# Keep deployment input limited to the React/Vite application and required API.
+# Legacy assets are intentionally excluded from Vercel builds.
+# The Flask API under /api is required and must stay in the deployment.
 static/
-*.py
-requirements.txt
 __pycache__/
 .idea/
