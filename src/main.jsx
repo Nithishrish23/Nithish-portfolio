@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowUpRight, BrainCircuit, Bot, Code2, ExternalLink, Github, Mail, MapPin, Menu, Send, ShieldCheck, X } from 'lucide-react';
+import { ArrowUpRight, BrainCircuit, Bot, Cloud, Code2, Database, ExternalLink, Github, Mail, MapPin, Menu, Monitor, Send, ShieldCheck, Sparkles, Server, Layers, Workflow, X } from 'lucide-react';
 import PortfolioScene from './PortfolioScene';
 import AvatarChat from './AvatarChat';
 import ThemeToggle from './ThemeToggle';
@@ -40,11 +40,18 @@ const experience = [
 ];
 
 const technologyGroups = [
-  { number: '01', title: 'AI & LLM', lead: 'Intelligence layer', items: ['LLMs', 'RAG', 'AI Agents', 'MCP', 'OpenAI', 'Claude', 'Gemini', 'Ollama'] },
-  { number: '02', title: 'Backend & Data', lead: 'Systems layer', items: ['Python', 'FastAPI', 'Django', 'Flask', 'PostgreSQL', 'MySQL', 'Redis', 'Celery'] },
-  { number: '03', title: 'Frontend & 3D', lead: 'Experience layer', items: ['React', 'Next.js', 'Vite', 'Three.js', 'JavaScript', 'Tailwind', 'WebGL'] },
-  { number: '04', title: 'Quality & Cloud', lead: 'Delivery layer', items: ['Azure AI', 'TensorFlow', 'YOLO', 'OpenCV', 'Selenium', 'Pytest', 'Git'] },
+  { number: '01', title: 'AI & LLM', lead: 'Intelligence layer', icon: BrainCircuit, items: ['LLMs', 'RAG', 'AI Agents', 'MCP', 'OpenAI', 'Claude', 'Gemini', 'Ollama'] },
+  { number: '02', title: 'Backend & Data', lead: 'Systems layer', icon: Database, items: ['Python', 'FastAPI', 'Django', 'Flask', 'PostgreSQL', 'MySQL', 'Redis', 'Celery'] },
+  { number: '03', title: 'Frontend & 3D', lead: 'Experience layer', icon: Monitor, items: ['React', 'Next.js', 'Vite', 'Three.js', 'JavaScript', 'Tailwind', 'WebGL'] },
+  { number: '04', title: 'Tools & Cloud', lead: 'Delivery layer', icon: Cloud, items: ['Azure AI', 'TensorFlow', 'YOLO', 'OpenCV', 'Selenium', 'Pytest', 'Git'] },
 ];
+
+const techIcons = {
+  LLMs: BrainCircuit, RAG: Layers, 'AI Agents': Bot, MCP: Workflow, OpenAI: Sparkles, Claude: Sparkles, Gemini: Sparkles, Ollama: Bot,
+  Python: Code2, FastAPI: Server, Django: Code2, Flask: Server, PostgreSQL: Database, MySQL: Database, Redis: Database, Celery: Workflow,
+  React: Code2, 'Next.js': Code2, Vite: Sparkles, 'Three.js': Layers, JavaScript: Code2, Tailwind: Layers, WebGL: Monitor,
+  'Azure AI': Cloud, TensorFlow: BrainCircuit, YOLO: Monitor, OpenCV: Monitor, Selenium: Workflow, Pytest: ShieldCheck, Git: Code2,
+};
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -93,12 +100,12 @@ function App() {
 
       <section id="experience" className="section experience-section"><div className="container"><div className="section-head"><span className="section-number">04</span><div><p className="section-kicker">CAREER</p><h2>Experience with <span>depth.</span></h2></div></div><div className="experience-layout"><div className="experience-intro"><p>Engineering across AI, software, analytics and full-stack product development.</p><div className="experience-rule"/><span>2022 — NOW</span></div><div className="timeline">{experience.map(item => <article key={item.company}><span className="period">{item.period}</span><div><h3>{item.role}</h3><h4>{item.company}</h4><p>{item.text}</p></div></article>)}</div></div></div></section>
 
-      <section className="section stack-section"><div className="container"><div className="stack-banner"><div><p className="section-kicker">TECHNOLOGY</p><h2>Engineered in <span>layers.</span></h2></div><p>A focused toolkit across intelligence, backend systems, interfaces, 3D experiences and production delivery.</p></div><div className="technology-grid">{technologyGroups.map(group => <article className="technology-card" key={group.title}><div className="technology-top"><span>{group.number}</span><small>{group.lead}</small></div><h3>{group.title}</h3><div className="technology-items">{group.items.map(item => <span key={item}>{item}</span>)}</div></article>)}</div></div></section>
+      <section className="section stack-section"><div className="container"><div className="stack-banner"><div><p className="section-kicker">TECHNOLOGY</p><h2>Engineered in <span>layers.</span></h2></div><p>A focused toolkit across intelligence, backend systems, interfaces, 3D experiences and production delivery.</p></div><div className="technology-grid">{technologyGroups.map(group => { const GroupIcon = group.icon; return <article className="technology-card" key={group.title}><div className="technology-card-head"><div className="technology-icon"><GroupIcon size={22}/></div><div><div className="technology-top"><span>{group.number}</span><small>{group.lead}</small></div><h3>{group.title}</h3></div></div><div className="technology-items">{group.items.map(item => { const ItemIcon = techIcons[item] || Code2; return <span key={item}><ItemIcon size={16}/><b>{item}</b></span>; })}</div></article>; })}</div></div></section>
 
       <section id="contact" className="section contact-section"><div className="container contact-wrap"><div className="contact-copy"><span className="section-number">05</span><p className="section-kicker">LET'S BUILD</p><h2>Have a hard problem?<br/><span>Let's make it software.</span></h2><p>For AI products, intelligent automation, full-stack systems or engineering opportunities, send a message.</p><div className="direct-contact"><a href={`mailto:${EMAIL}`}><Mail size={17}/> {EMAIL}</a><span><MapPin size={17}/> Chennai, Tamil Nadu, India</span></div></div><form className="contact-form" onSubmit={submit}><div className="form-title"><span>CONTACT</span><b>Tell me what you're building.</b></div><div className="form-row"><input required value={form.fullname} onChange={e => setField('fullname', e.target.value)} placeholder="Full name"/><input required type="email" value={form.email} onChange={e => setField('email', e.target.value)} placeholder="Email address"/></div><div className="form-row"><input required value={form.country} onChange={e => setField('country', e.target.value)} placeholder="Country"/><input required value={form.mobile} onChange={e => setField('mobile', e.target.value)} placeholder="Mobile number"/></div><textarea required value={form.message} onChange={e => setField('message', e.target.value)} placeholder="Tell me about the project or opportunity" rows="6"/><button className="primary-btn send-btn" disabled={sending}>{sending ? 'Saving…' : <>Send message <Send size={16}/></>}</button>{status.message && <div className={`form-status ${status.type}`}>{status.message}</div>}</form></div></section>
     </main>
 
-    <footer className="footer container"><div className="footer-brand"><img className="brand-photo" src={PROFILE_IMAGE} alt="Nithish Kumar"/><div><strong>Nithish Kumar</strong><span>AI Engineer · Full Stack Developer</span></div></div><div className="footer-links"><a href="https://github.com/Nithishrish23" target="_blank" rel="noreferrer"><Github size={16}/> GitHub</a><button onClick={() => go('contact')}>Contact</button></div><span className="footer-copy">© 2026 Nithish Kumar</span></footer>
+    <footer className="footer container"><div className="footer-brand"><img className="brand-photo" src={PROFILE_IMAGE} alt="Nithish Kumar"/><div><strong>Nithish Kumar</strong><span>AI Engineer · Full Stack Developer</span></div></div><div className="footer-links"><a href="https://github.com/Nithishrish23" target="_blank" rel="noreferrer"><Github size={16}/> GitHub</a></div><span className="footer-copy">© 2026 Nithish Kumar</span></footer>
     <AvatarChat />
   </div>;
 }
