@@ -3,122 +3,89 @@ import os
 import urllib.error
 import urllib.request
 
-from flask import Flask, jsonify, request
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-app = Flask(__name__)
+app = FastAPI(title="Nithish Portfolio AI", version="1.0")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["POST", "OPTIONS"], allow_headers=["*"])
 
 PROFILE = """
-You are the private portfolio assistant for Nithish Kumar P S, a Chennai, Tamil Nadu based Python and AI developer.
-Only describe information in this profile. Do not invent employers, dates, projects, metrics, clients, or skills.
+You are the portfolio AI assistant for Nithish Kumar P S, a Chennai, Tamil Nadu based Python and AI developer.
+Use ONLY the profile below. Never invent employers, dates, clients, metrics, projects or skills. Never claim to be Nithish himself.
+Answer naturally and professionally. If something is not listed, say it is not listed and offer a relevant topic.
 
-PROFILE
-- Objective: Python and AI Developer with 4+ years of IT engineering experience, focused on intelligent systems, APIs, scalable solutions, Flask/Django, TensorFlow, OpenAI and Azure AI.
-- Education: Bachelor of Engineering in Computer Science, Loyola Institute of Technology, Chennai, 2018-2022, cumulative GPA 7.5.
-- Current role: Software Engineer - II at CodeDTX Solutions PVT LTD, June 2025-present.
-- CodeDTX work: Salesforce API and Metadata integration for intelligent automation around permissions, user management, data analysis and administrative operations through conversational interfaces. Builds secure permission-aware action engines that propose, validate and execute changes with auditability and role-based approvals. Integrates OpenAI, LLaMA, Gemini and OpenRouter for natural-language understanding, tool orchestration and real-time AI responses.
-- Previous role: Team Lead at PCL INFOTECH PVT LTD, October 2024-June 2025. Built B2B/B2C e-commerce with Flask, React and PostgreSQL and connected AI agents for business automation.
-- Previous role: AI Software Associate at Green Books, August 2023-October 2024. Worked on image-identification software, backend optimization, AI/ML algorithms, testing, deployment and security.
-- Earlier role: Data Analyst Intern at Skill-Lync, December 2022-March 2023. Worked on trends, correlations, Tableau and Excel visualizations.
+EXPERIENCE
+- Software Engineer II, CodeDTX Solutions PVT LTD, June 2025-present: Salesforce API/Metadata integration, intelligent automation for permissions, user management, data analysis and administrative operations; permission-aware action engines with proposals, validation, execution, auditability and role-based approvals; LLM integration.
+- Team Lead, PCL INFOTECH PVT LTD, October 2024-June 2025: B2B/B2C e-commerce using Flask, React and PostgreSQL plus AI agents for business automation.
+- AI Software Associate, Green Books, August 2023-October 2024: image-identification software, backend optimization, AI/ML algorithms, testing, deployment and security.
+- Data Analyst Intern, Skill-Lync, December 2022-March 2023: trends/correlations, Tableau and Excel visualizations.
 
 PROJECTS
-- GenFlow AI - Multimodal Automation & Salesforce Intelligence: multimodal AI platform combining text LLMs and image generation, deployed and scaled on AWS; Salesforce Metadata, Tooling and REST API integration; Azure Pipelines for continuous deployment, environment validation and rollback automation; diagnostic agents for Salesforce errors, deployment issues and performance bottlenecks.
-- KYC Document Detection: detects and categorizes KYC documents including first/second pages, PAN, Aadhaar, address proof and signature; masks the first eight Aadhaar digits; uses YOLO, OpenCV, PIL and Canvas.
-- ICD-10/11 Medical Code Identification: Flask-based application and REST API for real-time extraction and processing of medical codes.
-- PCLMART E-Commerce: Flask backend with PostgreSQL and React frontend.
+- GenFlow AI: multimodal automation and Salesforce intelligence using text LLMs, image generation, Salesforce Metadata/Tooling/REST APIs, AWS, Azure Pipelines and diagnostic agents.
+- KYC Document Intelligence: YOLO/OpenCV/PIL/Canvas for PAN, Aadhaar, address/signature and page classification, including Aadhaar masking.
+- ICD-10/11 Medical Code Identification: Flask application and REST API for real-time extraction.
+- PCLMART: Flask/PostgreSQL backend and React frontend.
 
 SKILLS
-Python, YOLO, TensorFlow, scikit-learn, Selenium, Pytest, OpenAI integration, Ollama, OCR, Flask, FastAPI, GitHub, React JS, Tailwind CSS, LangChain, Pinecone, pgvector, AI agents, SQLAlchemy, NLP, tokenization, RAG, NER, LLMs, knowledge graphs.
+Python, Flask, FastAPI, Django, React, Tailwind, PostgreSQL, SQLAlchemy, TensorFlow, YOLO, OpenCV, OCR, NLP, NER, scikit-learn, Selenium, Pytest, LLMs, RAG, AI agents, LangChain, OpenAI integration, Ollama, Pinecone, pgvector, knowledge graphs, Salesforce APIs, AWS, Azure.
+
+EDUCATION
+BE Computer Science, Loyola Institute of Technology, Chennai, 2018-2022, GPA 7.5.
 
 CONTACT
-Portfolio: Nithish-Portfolio on GitHub.
-Email: nithishkumar140700@gmail.com
-Location: Chennai, Tamil Nadu, India.
+Email: nithishkumar140700@gmail.com. Location: Chennai, Tamil Nadu, India.
 """.strip()
 
-FALLBACKS = {
-    "who": "Nithish Kumar P S is a Python and AI developer in Chennai with 4+ years of IT engineering experience. He focuses on LLM applications, AI agents, RAG, enterprise automation, computer vision and full-stack systems.",
-    "experience": "Nithish is currently a Software Engineer - II at CodeDTX Solutions. Before that he was Team Lead at PCL INFOTECH, AI Software Associate at Green Books, and a Data Analyst Intern at Skill-Lync.",
-    "skills": "His profile highlights Python, Flask, FastAPI, React, PostgreSQL, LLMs, RAG, AI agents, OpenAI integration, LangChain, Pinecone, pgvector, YOLO, TensorFlow, OpenCV, NLP, NER, Selenium and Pytest.",
-    "projects": "Key projects include GenFlow AI for multimodal automation and Salesforce intelligence, KYC document detection, ICD-10/11 medical-code identification, and the PCLMART e-commerce platform.",
-}
+class ChatRequest(BaseModel):
+    message: str
+    history: list[dict] = []
 
 
 def fallback_reply(message: str) -> str:
     q = message.lower()
-    if any(word in q for word in ["who is", "who are", "about nithish", "introduce", "yourself"]):
-        return FALLBACKS["who"]
-    if any(word in q for word in ["experience", "career", "company", "work history", "job"]):
-        return FALLBACKS["experience"]
-    if any(word in q for word in ["skill", "stack", "technology", "tech"]):
-        return FALLBACKS["skills"]
-    if any(word in q for word in ["project", "built", "portfolio"]):
-        return FALLBACKS["projects"]
-    if any(word in q for word in ["contact", "email", "hire", "reach"]):
+    if any(x in q for x in ["who", "about nithish", "introduce"]):
+        return "Nithish Kumar P S is a Python and AI developer in Chennai with 4+ years of IT engineering experience, focused on LLM applications, RAG, AI agents, enterprise automation, computer vision and full-stack systems."
+    if any(x in q for x in ["experience", "career", "company", "work history"]):
+        return "Nithish is currently a Software Engineer II at CodeDTX Solutions. Previously he was Team Lead at PCL INFOTECH, AI Software Associate at Green Books, and Data Analyst Intern at Skill-Lync."
+    if any(x in q for x in ["skill", "stack", "technology", "tech"]):
+        return "His stack includes Python, FastAPI, Flask, React, PostgreSQL, LLMs, RAG, AI agents, OpenAI-compatible integrations, Ollama, LangChain, Pinecone, pgvector, YOLO, TensorFlow and OpenCV."
+    if any(x in q for x in ["project", "built"]):
+        return "Key builds include GenFlow AI/Salesforce intelligence, KYC document intelligence, ICD-10/11 medical-code identification and PCLMART e-commerce."
+    if any(x in q for x in ["contact", "email", "hire", "reach"]):
         return "You can reach Nithish at nithishkumar140700@gmail.com. He is based in Chennai, Tamil Nadu, India."
-    return "I can answer questions about Nithish's experience, projects, skills, education and engineering work. Ask me about any of those."
+    return "Ask me about Nithish's experience, projects, skills, education, AI work or engineering stack."
 
 
-def openai_reply(message: str, history: list) -> str:
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return fallback_reply(message)
-
-    model = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
-    conversation = []
+def ollama_reply(message: str, history: list[dict]) -> str:
+    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1").rstrip("/")
+    model = os.getenv("OLLAMA_MODEL", "gpt-oss:20b")
+    api_key = os.getenv("OLLAMA_API_KEY", "ollama")
+    messages = [{"role": "system", "content": PROFILE}]
     for item in history[-8:]:
-        role = item.get("role") if isinstance(item, dict) else None
-        content = item.get("content") if isinstance(item, dict) else None
-        if role in {"user", "assistant"} and content:
-            conversation.append({"role": role, "content": str(content)[:2000]})
-    conversation.append({"role": "user", "content": message[:4000]})
-
-    payload = {
-        "model": model,
-        "instructions": (
-            "You are Nithish Kumar's portfolio AI. Answer as a concise, confident professional assistant. "
-            "Use only the supplied profile. If the answer is not in the profile, say that it is not listed "
-            "and invite the visitor to ask about experience, projects, skills, education or contact. "
-            "Never claim to be Nithish himself."
-        ) + "\n\nPROFILE:\n" + PROFILE,
-        "input": conversation,
-        "max_output_tokens": 350,
-    }
-
+        if item.get("role") in {"user", "assistant"} and item.get("content"):
+            messages.append({"role": item["role"], "content": str(item["content"])[:2000]})
+    messages.append({"role": "user", "content": message[:4000]})
+    payload = {"model": model, "messages": messages, "temperature": 0.35, "max_tokens": 450}
     req = urllib.request.Request(
-        "https://api.openai.com/v1/responses",
+        f"{base_url}/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
         method="POST",
     )
-    try:
-        with urllib.request.urlopen(req, timeout=20) as response:
-            data = json.loads(response.read().decode("utf-8"))
-        output = []
-        for item in data.get("output", []):
-            for part in item.get("content", []):
-                if part.get("type") == "output_text" and part.get("text"):
-                    output.append(part["text"])
-        return "\n".join(output).strip() or fallback_reply(message)
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError):
-        return fallback_reply(message)
+    with urllib.request.urlopen(req, timeout=45) as response:
+        data = json.loads(response.read().decode("utf-8"))
+    return data["choices"][0]["message"]["content"].strip()
 
 
-@app.route("/", methods=["POST"])
-@app.route("/api/chat", methods=["POST"])
-def chat():
-    body = request.get_json(silent=True) or {}
-    message = str(body.get("message", "")).strip()
-    history = body.get("history", [])
+@app.post("/")
+@app.post("/api/chat")
+def chat(body: ChatRequest):
+    message = body.message.strip()
     if not message:
-        return jsonify({"message": "Ask me something about Nithish."}), 400
-    if not isinstance(history, list):
-        history = []
+        return {"message": "Ask me something about Nithish."}
     try:
-        reply = openai_reply(message, history)
-        return jsonify({"reply": reply, "source": "ai" if os.getenv("OPENAI_API_KEY") else "profile"})
-    except Exception:
-        return jsonify({"reply": fallback_reply(message), "source": "profile"})
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
+        reply = ollama_reply(message, body.history)
+        return {"reply": reply, "source": "ollama"}
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, KeyError, ValueError):
+        return {"reply": fallback_reply(message), "source": "profile"}
