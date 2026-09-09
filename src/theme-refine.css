@@ -1,0 +1,47 @@
+:root{--accent:#4f8cff;--accent-2:#39d353;--hero-bg:#070a0d;--light-bg:#f4f7fa;--light-surface:#ffffff;--light-surface-2:#eef2f6;--light-text:#101820;--light-muted:#5f6b76;--light-line:#dce3e9}
+
+/* Cinematic presentation: the hero and contact remain dark in every theme. */
+.hero,.contact-section{background:var(--hero-bg)}
+.hero{max-width:100%;width:100%;padding-left:max(28px,calc((100% - 1280px)/2));padding-right:max(28px,calc((100% - 1280px)/2));}
+.hero-copy{padding-left:0}.hero-visual{border-color:rgba(139,148,158,.13);box-shadow:inset 0 0 80px rgba(0,0,0,.2)}
+
+/* Icon-only theme control */
+.theme-toggle{width:42px;height:42px;display:grid;place-items:center;border:1px solid #303b46;border-radius:50%;background:rgba(10,15,20,.86);color:#dbe5ed;cursor:pointer;transition:transform .2s,border-color .2s,background .2s;flex:0 0 42px}
+.theme-toggle:hover{transform:translateY(-2px);border-color:#586673;background:#121a22}
+.theme-toggle svg{width:17px;height:17px}
+.nav-actions{display:flex;align-items:center;gap:9px}
+
+/* Replace the flat technology chip wall with a structured stack showcase. */
+.stack-section{padding-top:70px;padding-bottom:105px}
+.stack-banner{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:end;padding:34px 36px;border:1px solid #202a33;background:linear-gradient(135deg,#0a0f14,#0d141b);overflow:hidden}
+.stack-banner:before{content:'';position:absolute;right:-80px;top:-110px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(79,140,255,.18),transparent 68%);pointer-events:none}
+.stack-banner:after{content:'STACK';position:absolute;right:24px;bottom:13px;font:700 64px/1 'Space Grotesk';letter-spacing:-.08em;color:rgba(255,255,255,.025);pointer-events:none}
+.stack-banner h2{position:relative;z-index:1;margin:0;font:600 clamp(36px,4vw,58px)/.95 'Space Grotesk';letter-spacing:-.06em}.stack-banner h2 span{color:#58a6ff}.stack-banner>p{position:relative;z-index:1;max-width:480px;margin:0;color:#788692;font-size:12px;line-height:1.75}
+.skill-cloud{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:10px}
+.skill-cloud span{position:relative;display:flex;align-items:center;justify-content:center;min-height:48px;padding:11px 8px;border-radius:6px;background:#0b1016;border:1px solid #202a33;color:#8f9ca8;transition:transform .2s,border-color .2s,color .2s,background .2s}
+.skill-cloud span:before{content:'';width:4px;height:4px;border-radius:50%;background:#39d353;box-shadow:0 0 9px rgba(57,211,83,.6);margin-right:7px}.skill-cloud span:hover{transform:translateY(-3px);border-color:#3b8cff;color:#e6edf3;background:#101821}
+
+/* Keep contact cinematic/black even when the rest of the site is light. */
+.contact-section{color:#e6edf3!important;border-top:1px solid #151c23;border-bottom:1px solid #151c23}.contact-section .contact-copy p,.contact-section .direct-contact span,.contact-section .direct-contact a{color:#8b98a4}.contact-section .contact-form{background:#0b1015;border-color:#26323d}.contact-section input,.contact-section textarea{background:#080d12!important;border-color:#27333e!important;color:#e6edf3!important}.contact-section input::placeholder,.contact-section textarea::placeholder{color:#64717d}.contact-section .form-title span{color:#6f7c88}.contact-section .form-title b{color:#e6edf3}
+
+/* Light mode: clean editorial developer surface, while hero/contact keep the cinematic treatment. */
+[data-theme='light'] body{background:var(--light-bg);color:var(--light-text)}
+[data-theme='light'] body:before{opacity:.5;background-image:linear-gradient(rgba(20,35,48,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(20,35,48,.045) 1px,transparent 1px)}
+[data-theme='light'] body:after{opacity:.08;background:repeating-linear-gradient(0deg,rgba(20,35,48,.035) 0,rgba(20,35,48,.035) 1px,transparent 1px,transparent 4px)}
+[data-theme='light'] .nav-wrap{background:rgba(248,250,252,.88);border-bottom-color:#dce3e9}.nav-wrap{transition:background .25s,border-color .25s}
+[data-theme='light'] .brand,[data-theme='light'] .nav-links button,[data-theme='light'] .nav-links a{color:#1c2933}.nav-links button:hover,.nav-links a:hover{color:var(--accent)}
+[data-theme='light'] .brand small{color:#73808b}.brand-mark i{box-shadow:0 0 0 2px var(--hero-bg),0 0 9px var(--accent-2)}
+[data-theme='light'] .theme-toggle{background:#fff;color:#24313b;border-color:#cfd8df}.theme-toggle:hover{border-color:#9eabb6;background:#f5f8fa}
+[data-theme='light'] .menu-btn{background:#fff;color:#17232d;border-color:#cfd8df}
+[data-theme='light'] .section:not(.contact-section){color:var(--light-text)}
+[data-theme='light'] .section:not(.contact-section) .section-kicker{color:#66737e}.section:not(.contact-section) .section-number{color:#77848e}
+[data-theme='light'] .section:not(.contact-section) h2 span{color:#101820}.section:not(.contact-section) .section-note{color:#6b7883}
+[data-theme='light'] .about-section{background:#f4f7fa}.about-statement>p{color:#63717c}.about-statement strong{color:#17232d}.signature-line{border-color:#dce3e9;color:#73808b}.capability-list{border-color:#dce3e9}.capability-list article{border-color:#dce3e9}.capability-list article:hover{background:linear-gradient(90deg,rgba(79,140,255,.06),transparent)}.capability-list article>svg:last-child{color:#8a96a0}.capability-list p{color:#66737e}
+[data-theme='light'] .work-section{background:#eaf0f4;border-color:#d8e0e6}.work-list{border-color:#d5dee5}.work-row{border-color:#d5dee5}.work-row:hover{background:linear-gradient(90deg,transparent,rgba(79,140,255,.05),transparent)}.work-index,.work-category{color:#73808b}.work-main>p:not(.work-category){color:#63717c}.stack span{background:#f7f9fb;border-color:#d7e0e6;color:#55636e}
+[data-theme='light'] .company-section{background:#f4f7fa}.company-card{background:#fff;border-color:#d9e1e7}.company-card:hover{background:#f8fafb;border-color:#b9c6cf}.company-card h3{color:#17232d}.company-card p{color:#6d7984}.company-symbol{background:#eff8f1;border-color:#b8d8bf}.company-card>svg{color:#7a8792}
+[data-theme='light'] .experience-section{background:#f4f7fa}.experience-intro p{color:#63717c}.timeline{border-color:#dce3e9}.timeline article{border-color:#dce3e9}.timeline .period{color:#74818c}.timeline h3{color:#17232d}.timeline h4{color:#52606b}.timeline p{color:#63717c}
+[data-theme='light'] .stack-section{background:#eef3f6}.stack-banner{background:linear-gradient(135deg,#fff,#f3f7fa);border-color:#d7e0e6}.stack-banner h2{color:#17232d}.stack-banner>p{color:#65727d}.stack-banner:after{color:rgba(15,35,55,.035)}.skill-cloud span{background:#fff;border-color:#d6e0e6;color:#55636f}.skill-cloud span:hover{background:#f8fbfd;color:#17232d;border-color:#83aef5}
+[data-theme='light'] .footer{border-color:#dce3e9;color:#53616c}.footer-copy{color:#7b8791}
+
+@media(max-width:1050px){.skill-cloud{grid-template-columns:repeat(4,1fr)}.stack-banner{grid-template-columns:1fr;gap:22px}}
+@media(max-width:760px){.hero{padding-left:18px;padding-right:18px}.theme-toggle{width:38px;height:38px;flex-basis:38px}.nav-actions{gap:6px}.skill-cloud{grid-template-columns:repeat(2,1fr)}.stack-banner{padding:25px 20px}.stack-banner:after{font-size:42px}.contact-section{padding-top:75px}}
