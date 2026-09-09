@@ -17,13 +17,12 @@ export default function PortfolioScene() {
     let resizeObserver = null;
     let mixer = null;
     let model = null;
+    let cleanupPointer = null;
 
     const start = async () => {
       try {
-        const [{ default: THREE }, { GLTFLoader }] = await Promise.all([
-          import('three'),
-          import('three/examples/jsm/loaders/GLTFLoader.js'),
-        ]);
+        const THREE = await import('three');
+        const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
         if (cancelled) return;
 
         const scene = new THREE.Scene();
@@ -41,8 +40,7 @@ export default function PortfolioScene() {
         renderer.setClearColor(0x000000, 0);
         mount.appendChild(renderer.domElement);
 
-        const hemi = new THREE.HemisphereLight(0xf4f8ff, 0x6f7c8d, 2.2);
-        scene.add(hemi);
+        scene.add(new THREE.HemisphereLight(0xf4f8ff, 0x6f7c8d, 2.2));
         const key = new THREE.DirectionalLight(0xffffff, 3.6);
         key.position.set(3.5, 6.5, 5.5);
         scene.add(key);
@@ -57,20 +55,13 @@ export default function PortfolioScene() {
         stage.position.y = 0.05;
         scene.add(stage);
 
-        const wall = new THREE.Mesh(
-          new THREE.PlaneGeometry(12, 8),
-          new THREE.MeshStandardMaterial({ color: 0xf3f7fb, roughness: 1 })
-        );
+        const wall = new THREE.Mesh(new THREE.PlaneGeometry(12, 8), new THREE.MeshStandardMaterial({ color: 0xf3f7fb, roughness: 1 }));
         wall.position.set(0, 1.75, -2.75);
         stage.add(wall);
 
-        const floor = new THREE.Mesh(
-          new THREE.PlaneGeometry(12, 10),
-          new THREE.MeshStandardMaterial({ color: 0xdfe8f0, roughness: 0.94 })
-        );
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 10), new THREE.MeshStandardMaterial({ color: 0xdfe8f0, roughness: 0.94 }));
         floor.rotation.x = -Math.PI / 2;
         floor.position.y = -2.0;
-        floor.receiveShadow = false;
         stage.add(floor);
 
         const windowFrame = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
@@ -139,10 +130,7 @@ export default function PortfolioScene() {
         modelRoot.position.set(0.8, -0.18, 0.12);
         stage.add(modelRoot);
 
-        const avatarShadow = new THREE.Mesh(
-          new THREE.CircleGeometry(0.95, 32),
-          new THREE.MeshBasicMaterial({ color: 0x294866, transparent: true, opacity: 0.18, depthWrite: false })
-        );
+        const avatarShadow = new THREE.Mesh(new THREE.CircleGeometry(0.95, 32), new THREE.MeshBasicMaterial({ color: 0x294866, transparent: true, opacity: 0.18, depthWrite: false }));
         avatarShadow.rotation.x = -Math.PI / 2;
         avatarShadow.scale.set(1.55, 0.7, 1);
         avatarShadow.position.set(0.8, -1.93, 0.3);
@@ -169,8 +157,7 @@ export default function PortfolioScene() {
             const box = new THREE.Box3().setFromObject(model);
             const size = box.getSize(new THREE.Vector3());
             const center = box.getCenter(new THREE.Vector3());
-            const height = size.y || 1;
-            const scale = 3.35 / height;
+            const scale = 3.35 / (size.y || 1);
             model.scale.setScalar(scale);
             model.position.set(-center.x * scale, -center.y * scale - 0.04, -center.z * scale);
             modelRoot.add(model);
@@ -197,6 +184,10 @@ export default function PortfolioScene() {
         const onPointerLeave = () => { targetX = 0; targetY = 0; };
         mount.addEventListener('pointermove', onPointerMove);
         mount.addEventListener('pointerleave', onPointerLeave);
+        cleanupPointer = () => {
+          mount.removeEventListener('pointermove', onPointerMove);
+          mount.removeEventListener('pointerleave', onPointerLeave);
+        };
 
         const resize = () => {
           const width = Math.max(mount.clientWidth, 1);
@@ -227,11 +218,6 @@ export default function PortfolioScene() {
           renderer.render(scene, camera);
         };
         animate();
-
-        return () => {
-          mount.removeEventListener('pointermove', onPointerMove);
-          mount.removeEventListener('pointerleave', onPointerLeave);
-        };
       } catch (error) {
         if (!cancelled) {
           console.error('3D workspace initialization failed:', error);
@@ -245,6 +231,7 @@ export default function PortfolioScene() {
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
+      cleanupPointer?.();
       resizeObserver?.disconnect();
       mixer?.stopAllAction();
       renderer?.dispose();
