@@ -11,7 +11,6 @@ export default function PortfolioScene() {
   const mountRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [message, setMessage] = useState('Hi, I\'m Nithish\'s AI assistant.');
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -96,7 +95,7 @@ export default function PortfolioScene() {
         }
         const nodeName = `${node.name || ''} ${node.userData?.name || ''}`;
         if (isHeadNode(nodeName)) headNodes.push({ node, x: node.rotation.x, y: node.rotation.y, z: node.rotation.z });
-        if (isEyeNode(nodeName)) eyeNodes.push({ node, x: node.rotation.x, y: node.rotation.y, z: node.rotation.z });
+        if (isEyeNode(nodeName)) eyeNodes.push({ node, x: node.rotation.x, y: node.rotation.y, z: node.rotation.z, scaleY: node.scale.y });
         if (isActionNode(nodeName)) actionNodes.push({ node, x: node.rotation.x, y: node.rotation.y, z: node.rotation.z });
       });
 
@@ -139,15 +138,7 @@ export default function PortfolioScene() {
       rotationVelocity = THREE.MathUtils.clamp(dx * 0.012, -0.22, 0.22);
       targetRotation += dx * 0.012;
     };
-    const onPointerUp = () => {
-      mount.dataset.dragging = 'false';
-      if (Math.abs(rotationVelocity) > 0.025) setMessage('Nice. Drag me around 360°.');
-    };
-    const onClick = () => {
-      if (mount.dataset.dragging === 'true') return;
-      gesture = 1;
-      setMessage('Ask me anything about Nithish.');
-    };
+    const onPointerUp = () => { mount.dataset.dragging = 'false'; };
     const onScroll = () => {
       const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
       scrollTarget = THREE.MathUtils.clamp(window.scrollY / maxScroll, 0, 1);
@@ -159,7 +150,6 @@ export default function PortfolioScene() {
     mount.addEventListener('pointerup', onPointerUp);
     mount.addEventListener('pointercancel', onPointerUp);
     mount.addEventListener('pointerleave', onPointerLeave);
-    mount.addEventListener('click', onClick);
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
 
@@ -178,7 +168,6 @@ export default function PortfolioScene() {
       raf = requestAnimationFrame(animate);
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
-      gesture = THREE.MathUtils.damp(gesture, 0, 3.5, delta);
 
       const intro = Math.min(elapsed / 1.1, 1);
       const eased = 1 - Math.pow(1 - intro, 4);
@@ -199,31 +188,19 @@ export default function PortfolioScene() {
         node.rotation.y = THREE.MathUtils.damp(node.rotation.y, y + lookX, 6.2, delta);
         node.rotation.z = THREE.MathUtils.damp(node.rotation.z, z - gesture * 0.025, 6.2, delta);
       });
-      eyeNodes.forEach(({ node, x, y, z }) => {
+      eyeNodes.forEach(({ node, x, y, z, scaleY }) => {
         node.rotation.x = THREE.MathUtils.damp(node.rotation.x, x + lookY * 1.3, 10, delta);
         node.rotation.y = THREE.MathUtils.damp(node.rotation.y, y + lookX * 1.5, 10, delta);
         node.rotation.z = THREE.MathUtils.damp(node.rotation.z, z, 10, delta);
+        if (elapsed > nextBlink) {
+          blink = 1;
+          nextBlink = elapsed + 2.8 + Math.random() * 3.4;
+        }
+        blink = THREE.MathUtils.damp(blink, 0, 12, delta);
+        node.scale.y = scaleY * Math.max(0.12, 1 - blink * 0.92);
       });
 
-      if (elapsed > nextBlink) {
-        blink = 1;
-        nextBlink = elapsed + 2.8 + Math.random() * 3.4;
-      }
-      blink = THREE.MathUtils.damp(blink, 0, 12, delta);
-      eyeNodes.forEach(({ node }) => {
-        const scaleY = Math.max(0.12, 1 - blink * 0.92);
-        node.scale.y = scaleY;
-      });
-
-      const wave = Math.sin((1 - gesture) * Math.PI) * gesture;
-      actionNodes.forEach(({ node, x, y, z }, index) => {
-        const side = index % 2 === 0 ? 1 : -1;
-        node.rotation.x = THREE.MathUtils.damp(node.rotation.x, x + wave * 0.12, 5.5, delta);
-        node.rotation.y = THREE.MathUtils.damp(node.rotation.y, y + side * wave * 0.1, 5.5, delta);
-        node.rotation.z = THREE.MathUtils.damp(node.rotation.z, z + side * wave * 0.06, 5.5, delta);
-      });
-
-      if (mixer) {
+      if (gltfHasAnimation(mixer)) {
         mixer.timeScale = 0.92 + gesture * 0.24;
         mixer.update(delta);
       } else if (model) {
@@ -247,7 +224,6 @@ export default function PortfolioScene() {
       mount.removeEventListener('pointerup', onPointerUp);
       mount.removeEventListener('pointercancel', onPointerUp);
       mount.removeEventListener('pointerleave', onPointerLeave);
-      mount.removeEventListener('click', onClick);
       window.removeEventListener('scroll', onScroll);
       mixer?.stopAllAction();
       renderer.dispose();
@@ -261,8 +237,11 @@ export default function PortfolioScene() {
   return <div className={`scene-shell ${loaded ? 'is-loaded' : ''} ${failed ? 'is-failed' : ''}`} aria-label="Interactive 3D portrait">
     <div ref={mountRef} className="three-canvas" />
     <div className="scene-glow" />
-    <div className="avatar-speech" aria-live="polite">{message}</div>
-    <div className="avatar-rotate-hint"><span className="rotate-icon">↔</span> Drag to rotate 360° · click to interact</div>
+    <div className="avatar-rotate-hint"><span className="rotate-icon">↔</span> Drag to rotate 360°</div>
     {failed && <div className="scene-error">Avatar could not be loaded</div>}
   </div>;
+}
+
+function gltfHasAnimation(mixer) {
+  return Boolean(mixer);
 }
