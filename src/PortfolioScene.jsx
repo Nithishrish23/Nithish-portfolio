@@ -37,32 +37,13 @@ export default function PortfolioScene() {
     const fill = new THREE.PointLight(0x5aa9ff, 18, 13, 2);
     fill.position.set(-3, 2.5, 4);
     scene.add(fill);
-    const rim = new THREE.PointLight(0x39d353, 12, 11, 2);
+    const rim = new THREE.PointLight(0x6aa9f5, 10, 11, 2);
     rim.position.set(2.5, 3.8, -2);
     scene.add(rim);
 
     const stage = new THREE.Group();
     stage.position.y = 0.04;
     scene.add(stage);
-
-    const grid = new THREE.GridHelper(6.5, 26, 0x34404a, 0x1b252d);
-    grid.position.y = -1.73;
-    grid.material.transparent = true;
-    grid.material.opacity = 0.14;
-    stage.add(grid);
-
-    const particleGeometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(150 * 3);
-    for (let i = 0; i < 150; i += 1) {
-      const radius = 3.2 + Math.random() * 3.2;
-      const angle = Math.random() * Math.PI * 2;
-      positions[i * 3] = Math.cos(angle) * radius;
-      positions[i * 3 + 1] = (Math.random() - 0.4) * 4;
-      positions[i * 3 + 2] = Math.sin(angle) * radius - 1;
-    }
-    particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const particles = new THREE.Points(particleGeometry, new THREE.PointsMaterial({ color: 0xb9c7d2, size: 0.012, transparent: true, opacity: 0.22, sizeAttenuation: true }));
-    scene.add(particles);
 
     const modelRoot = new THREE.Group();
     stage.add(modelRoot);
@@ -77,11 +58,12 @@ export default function PortfolioScene() {
     let dragRotation = 0;
     let targetRotation = 0;
     let rotationVelocity = 0;
-    let gesture = 0;
     let scrollTarget = 0;
     let elapsed = 0;
     let blink = 0;
     let nextBlink = 2.5;
+    let poseClock = 0;
+    let poseIndex = 0;
     const clock = new THREE.Clock();
     const loader = new GLTFLoader();
 
@@ -168,6 +150,7 @@ export default function PortfolioScene() {
       raf = requestAnimationFrame(animate);
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
+      poseClock += delta;
 
       const intro = Math.min(elapsed / 1.1, 1);
       const eased = 1 - Math.pow(1 - intro, 4);
@@ -181,36 +164,57 @@ export default function PortfolioScene() {
       modelRoot.scale.setScalar(THREE.MathUtils.lerp(0.01, 1, eased));
       modelRoot.rotation.y = dragRotation + scrollSway;
 
+      /* Automatically alternate between relaxed/casual and polished/professional micro-poses. */
+      if (poseClock > 8) {
+        poseClock = 0;
+        poseIndex = (poseIndex + 1) % 2;
+      }
+      const poseBlend = THREE.MathUtils.smoothstep((poseClock % 2) / 2, 0, 1);
+      const poseTarget = poseIndex === 0 ? 0 : 1;
+      const poseAmount = poseTarget ? poseBlend : 1 - poseBlend;
+      const breathing = Math.sin(elapsed * 1.35) * 0.008;
+
       const lookX = targetX * 0.24;
       const lookY = targetY * 0.1;
       headNodes.forEach(({ node, x, y, z }) => {
-        node.rotation.x = THREE.MathUtils.damp(node.rotation.x, x + lookY - gesture * 0.035, 6.2, delta);
+        node.rotation.x = THREE.MathUtils.damp(node.rotation.x, x + lookY, 6.2, delta);
         node.rotation.y = THREE.MathUtils.damp(node.rotation.y, y + lookX, 6.2, delta);
-        node.rotation.z = THREE.MathUtils.damp(node.rotation.z, z - gesture * 0.025, 6.2, delta);
+        node.rotation.z = THREE.MathUtils.damp(node.rotation.z, z, 6.2, delta);
       });
+
+      /* Natural blink timing, independent of the number of eye meshes. */
+      if (elapsed > nextBlink) {
+        blink = 1;
+        nextBlink = elapsed + 2.8 + Math.random() * 3.4;
+      }
+      blink = THREE.MathUtils.damp(blink, 0, 12, delta);
       eyeNodes.forEach(({ node, x, y, z, scaleY }) => {
         node.rotation.x = THREE.MathUtils.damp(node.rotation.x, x + lookY * 1.3, 10, delta);
         node.rotation.y = THREE.MathUtils.damp(node.rotation.y, y + lookX * 1.5, 10, delta);
         node.rotation.z = THREE.MathUtils.damp(node.rotation.z, z, 10, delta);
-        if (elapsed > nextBlink) {
-          blink = 1;
-          nextBlink = elapsed + 2.8 + Math.random() * 3.4;
-        }
-        blink = THREE.MathUtils.damp(blink, 0, 12, delta);
         node.scale.y = scaleY * Math.max(0.12, 1 - blink * 0.92);
       });
 
-      if (gltfHasAnimation(mixer)) {
-        mixer.timeScale = 0.92 + gesture * 0.24;
+      /* Very subtle shoulder/arm movement gives the character a living, conversational feel without breaking the rig. */
+      actionNodes.forEach(({ node, x, y, z }, index) => {
+        const side = index % 2 === 0 ? 1 : -1;
+        const relaxed = Math.sin(elapsed * 0.9 + index) * 0.012;
+        const professional = Math.sin(elapsed * 1.05 + index) * 0.006;
+        node.rotation.x = THREE.MathUtils.damp(node.rotation.x, x + THREE.MathUtils.lerp(relaxed, professional, poseAmount) + breathing, 5.5, delta);
+        node.rotation.y = THREE.MathUtils.damp(node.rotation.y, y + side * THREE.MathUtils.lerp(0.008, 0.002, poseAmount), 5.5, delta);
+        node.rotation.z = THREE.MathUtils.damp(node.rotation.z, z + side * THREE.MathUtils.lerp(0.012, 0.004, poseAmount), 5.5, delta);
+      });
+
+      if (mixer) {
+        mixer.timeScale = 0.9;
         mixer.update(delta);
       } else if (model) {
-        model.position.y = 0.12 + Math.sin(elapsed * 1.35) * 0.012;
+        model.position.y = 0.12 + breathing;
       }
 
       stage.rotation.x = THREE.MathUtils.lerp(stage.rotation.x, targetY * 0.008, 0.04);
       camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetX * 0.06, 0.025);
       camera.position.y = THREE.MathUtils.lerp(camera.position.y, 0.48 - targetY * 0.05, 0.025);
-      particles.rotation.y += delta * 0.004;
       renderer.render(scene, camera);
     };
     animate();
@@ -227,9 +231,6 @@ export default function PortfolioScene() {
       window.removeEventListener('scroll', onScroll);
       mixer?.stopAllAction();
       renderer.dispose();
-      particleGeometry.dispose();
-      grid.geometry.dispose();
-      grid.material.dispose();
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
     };
   }, []);
@@ -240,8 +241,4 @@ export default function PortfolioScene() {
     <div className="avatar-rotate-hint"><span className="rotate-icon">↔</span> Drag to rotate 360°</div>
     {failed && <div className="scene-error">Avatar could not be loaded</div>}
   </div>;
-}
-
-function gltfHasAnimation(mixer) {
-  return Boolean(mixer);
 }
