@@ -27,6 +27,7 @@ export default function PortfolioScene() {
     renderer.setClearColor(0xffffff, 0);
     mount.appendChild(renderer.domElement);
 
+    // Soft studio lighting so the real GLB remains the visual focus.
     scene.add(new THREE.HemisphereLight(0xf8fbff, 0xc9d5e3, 2.4));
     const key = new THREE.DirectionalLight(0xffffff, 4.4);
     key.position.set(3, 6, 6);
@@ -74,6 +75,7 @@ export default function PortfolioScene() {
         model.position.set(-center.x * scale, -center.y * scale + 0.02, -center.z * scale);
         modelRoot.add(model);
 
+        // Prefer a real idle/standing animation from the supplied GLB when available.
         if (gltf.animations?.length) {
           mixer = new THREE.AnimationMixer(model);
           const idle = gltf.animations.find((clip) => /idle|stand|breath|casual|relax/i.test(clip.name)) || gltf.animations[0];
@@ -114,7 +116,7 @@ export default function PortfolioScene() {
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
 
-      // Premium, almost-static casual standing presentation: no falling, no spinning, no orbit lines.
+      // Calm, natural standing motion. No floating entrance and no avatar spin.
       const breath = Math.sin(elapsed * 1.15) * 0.012;
       modelRoot.position.y = 0.03 + breath;
       modelRoot.rotation.y = THREE.MathUtils.lerp(modelRoot.rotation.y, targetX * 0.045, 0.045);
@@ -142,6 +144,26 @@ export default function PortfolioScene() {
 
   return (
     <div className={`scene-shell ${loaded ? 'is-loaded' : ''} ${failed ? 'is-failed' : ''}`} aria-label="Interactive 3D portrait">
+      <div
+        className="avatar-backdrop"
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          background: [
+            'radial-gradient(circle at 50% 30%, rgba(255,255,255,.98) 0 8%, rgba(229,239,248,.92) 32%, rgba(194,210,225,.72) 60%, rgba(145,165,183,.48) 100%)',
+            'linear-gradient(115deg, rgba(255,255,255,.76), transparent 42%, rgba(54,103,147,.16))',
+            'repeating-linear-gradient(90deg, transparent 0 88px, rgba(57,92,120,.075) 89px, transparent 90px)',
+            'repeating-linear-gradient(0deg, transparent 0 66px, rgba(57,92,120,.055) 67px, transparent 68px)',
+          ].join(','),
+        }}
+      >
+        <div style={{ position: 'absolute', inset: '8% 7% 34%', border: '1px solid rgba(255,255,255,.38)', borderRadius: '18px', boxShadow: 'inset 0 0 80px rgba(45,78,105,.08)' }} />
+        <div style={{ position: 'absolute', left: '9%', right: '9%', bottom: '6%', height: '30%', background: 'repeating-linear-gradient(90deg, rgba(38,70,96,.11) 0 1px, transparent 1px 58px)', transform: 'perspective(420px) rotateX(58deg)', transformOrigin: 'bottom', maskImage: 'linear-gradient(to bottom, transparent, #000 30%, transparent)' }} />
+        <div style={{ position: 'absolute', left: '50%', bottom: '8%', width: '30%', height: '5%', transform: 'translateX(-50%)', borderRadius: '50%', background: 'rgba(20,43,63,.24)', filter: 'blur(15px)' }} />
+      </div>
       <div ref={mountRef} className="three-canvas" />
       {failed && <div className="scene-error">Avatar could not be loaded</div>}
     </div>
