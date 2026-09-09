@@ -13,11 +13,21 @@ export default function PortfolioScene() {
     const mount = mountRef.current;
     if (!mount) return undefined;
 
+    // Keep the hero typography clean: no decorative green rules/dashes.
+    const style = document.createElement('style');
+    style.textContent = `
+      .hero .eyebrow > span,
+      .hero h1 em:after,
+      .scene-label span { display: none !important; }
+      .hero .eyebrow { gap: 0 !important; }
+    `;
+    document.head.appendChild(style);
+
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x080b0f, 0.045);
 
     const camera = new THREE.PerspectiveCamera(31, 1, 0.1, 100);
-    camera.position.set(0.05, 1.25, 6.4);
+    camera.position.set(0.05, 1.2, 6.4);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -27,63 +37,53 @@ export default function PortfolioScene() {
     renderer.toneMappingExposure = 1.12;
     mount.appendChild(renderer.domElement);
 
-    scene.add(new THREE.HemisphereLight(0xb8c7d8, 0x080b0f, 1.55));
+    scene.add(new THREE.HemisphereLight(0xb8c7d8, 0x080b0f, 1.65));
 
-    const key = new THREE.DirectionalLight(0xe8f0f6, 3.1);
+    const key = new THREE.DirectionalLight(0xe8f0f6, 3.2);
     key.position.set(3.5, 5.5, 4.5);
     scene.add(key);
 
-    const greenRim = new THREE.PointLight(0x39d353, 45, 11, 2);
-    greenRim.position.set(-3.2, 2.6, -2.2);
-    scene.add(greenRim);
-
-    const blueRim = new THREE.PointLight(0x58a6ff, 32, 10, 2);
+    const blueRim = new THREE.PointLight(0x58a6ff, 28, 10, 2);
     blueRim.position.set(3.4, 1.7, -2.8);
     scene.add(blueRim);
 
     const group = new THREE.Group();
     scene.add(group);
 
-    // Developer-style orbital geometry: thin technical rings instead of a sci-fi halo.
-    const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x39d353, transparent: true, opacity: 0.34 });
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.72, 0.004, 8, 180), ringMaterial);
-    ring.rotation.x = Math.PI / 2.25;
-    ring.position.y = 0.05;
-    group.add(ring);
-
-    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(2.28, 0.0025, 8, 180), new THREE.MeshBasicMaterial({ color: 0x58a6ff, transparent: true, opacity: 0.2 }));
-    ring2.rotation.x = Math.PI / 2.08;
-    ring2.rotation.z = 0.52;
-    ring2.position.y = -0.18;
-    group.add(ring2);
-
+    // Clean developer environment: subtle floor grid only, no orbital green lines.
     const grid = new THREE.GridHelper(6.5, 26, 0x26313b, 0x182129);
     grid.position.y = -2.02;
     grid.material.transparent = true;
-    grid.material.opacity = 0.28;
+    grid.material.opacity = 0.22;
     group.add(grid);
 
     const particleGeometry = new THREE.BufferGeometry();
-    const particleCount = 420;
+    const particleCount = 180;
     const particlePositions = new Float32Array(particleCount * 3);
     for (let i = 0; i < particleCount; i += 1) {
-      const radius = 2.5 + Math.random() * 4.5;
+      const radius = 3 + Math.random() * 4;
       const angle = Math.random() * Math.PI * 2;
       particlePositions[i * 3] = Math.cos(angle) * radius;
-      particlePositions[i * 3 + 1] = (Math.random() - 0.45) * 4.8;
+      particlePositions[i * 3 + 1] = (Math.random() - 0.45) * 4.2;
       particlePositions[i * 3 + 2] = Math.sin(angle) * radius - 1.2;
     }
     particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-    const particles = new THREE.Points(particleGeometry, new THREE.PointsMaterial({ color: 0x7ee787, size: 0.014, transparent: true, opacity: 0.48, sizeAttenuation: true }));
+    const particles = new THREE.Points(
+      particleGeometry,
+      new THREE.PointsMaterial({ color: 0x7d8995, size: 0.012, transparent: true, opacity: 0.24, sizeAttenuation: true })
+    );
     scene.add(particles);
 
     const modelRoot = new THREE.Group();
-    modelRoot.position.y = -2.25;
+    modelRoot.position.y = -2.15;
     modelRoot.scale.setScalar(0.001);
     group.add(modelRoot);
 
     let model;
+    let mixer;
+    const clock = new THREE.Clock();
     const loader = new GLTFLoader();
+
     loader.load(
       MODEL_URL,
       (gltf) => {
@@ -102,6 +102,15 @@ export default function PortfolioScene() {
           }
         });
         modelRoot.add(model);
+
+        // Prefer the model's own animation clips when available. This gives a
+        // natural standing/idle pose instead of a constant robotic spin.
+        if (gltf.animations?.length) {
+          mixer = new THREE.AnimationMixer(model);
+          const clip = gltf.animations.find((item) => /idle|stand|breath|casual/i.test(item.name)) || gltf.animations[0];
+          mixer.clipAction(clip).play();
+        }
+
         setLoaded(true);
       },
       undefined,
@@ -112,8 +121,8 @@ export default function PortfolioScene() {
     let targetY = 0;
     const onPointerMove = (event) => {
       const rect = mount.getBoundingClientRect();
-      targetX = ((event.clientX - rect.left) / rect.width - 0.5) * 0.18;
-      targetY = ((event.clientY - rect.top) / rect.height - 0.5) * 0.11;
+      targetX = ((event.clientX - rect.left) / rect.width - 0.5) * 0.12;
+      targetY = ((event.clientY - rect.top) / rect.height - 0.5) * 0.07;
     };
     mount.addEventListener('pointermove', onPointerMove);
 
@@ -127,25 +136,34 @@ export default function PortfolioScene() {
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(mount);
 
-    const clock = new THREE.Clock();
     let raf = 0;
     let elapsed = 0;
     const animate = () => {
       raf = requestAnimationFrame(animate);
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
-      const intro = Math.min(elapsed / 2.15, 1);
+
+      const intro = Math.min(elapsed / 1.6, 1);
       const eased = 1 - Math.pow(1 - intro, 4);
-      modelRoot.position.y = THREE.MathUtils.lerp(-2.25, 0, eased);
+      modelRoot.position.y = THREE.MathUtils.lerp(-2.15, 0, eased);
       modelRoot.scale.setScalar(THREE.MathUtils.lerp(0.001, 1, eased));
-      if (model) model.rotation.y += delta * 0.14;
-      ring.rotation.z += delta * 0.09;
-      ring2.rotation.z -= delta * 0.05;
-      particles.rotation.y += delta * 0.008;
-      group.rotation.y = THREE.MathUtils.lerp(group.rotation.y, targetX, 0.04);
-      group.rotation.x = THREE.MathUtils.lerp(group.rotation.x, targetY, 0.04);
-      camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetX * 0.55, 0.03);
-      camera.position.y = THREE.MathUtils.lerp(camera.position.y, 1.25 - targetY * 0.35, 0.03);
+
+      if (mixer) {
+        mixer.update(delta);
+      } else if (model) {
+        // Gentle casual standing fallback when the GLB has no animation clips.
+        const breathing = Math.sin(elapsed * 1.45) * 0.035;
+        const sway = Math.sin(elapsed * 0.72) * 0.018;
+        modelRoot.position.y += breathing;
+        model.rotation.y = THREE.MathUtils.lerp(model.rotation.y, sway + targetX * 0.35, 0.035);
+        model.rotation.x = THREE.MathUtils.lerp(model.rotation.x, targetY * 0.22, 0.035);
+      }
+
+      group.rotation.y = THREE.MathUtils.lerp(group.rotation.y, targetX, 0.035);
+      group.rotation.x = THREE.MathUtils.lerp(group.rotation.x, targetY, 0.035);
+      camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetX * 0.4, 0.025);
+      camera.position.y = THREE.MathUtils.lerp(camera.position.y, 1.2 - targetY * 0.25, 0.025);
+      particles.rotation.y += delta * 0.003;
       renderer.render(scene, camera);
     };
     animate();
@@ -154,15 +172,13 @@ export default function PortfolioScene() {
       cancelAnimationFrame(raf);
       resizeObserver.disconnect();
       mount.removeEventListener('pointermove', onPointerMove);
+      mixer?.stopAllAction();
       renderer.dispose();
       particleGeometry.dispose();
-      ring.geometry.dispose();
-      ring.material.dispose();
-      ring2.geometry.dispose();
-      ring2.material.dispose();
       grid.geometry.dispose();
       grid.material.dispose();
-      mount.removeChild(renderer.domElement);
+      style.remove();
+      if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
     };
   }, []);
 
@@ -170,8 +186,10 @@ export default function PortfolioScene() {
     <div className="scene-shell" aria-label="Interactive 3D portrait">
       <div ref={mountRef} className="three-canvas" />
       <div className="scene-glow" />
-      <div className="scene-label scene-label-top"><span />THREE.JS / GLB / INTERACTIVE</div>
-      <div className="scene-label scene-label-bottom">{failed ? 'MODEL MISSING · public/nithish-model.glb' : loaded ? 'MODEL ONLINE · 60 FPS TARGET' : 'LOADING GLB ASSET…'}</div>
+      <div className="scene-label scene-label-top">THREE.JS / GLB / INTERACTIVE</div>
+      <div className="scene-label scene-label-bottom">
+        {failed ? 'MODEL MISSING · public/nithish-model.glb' : loaded ? 'MODEL ONLINE · IDLE ANIMATION' : 'LOADING GLB ASSET…'}
+      </div>
     </div>
   );
 }
