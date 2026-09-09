@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
 import { ArrowUpRight, BrainCircuit, Bot, Code2, ExternalLink, Github, Mail, MapPin, Menu, Send, ShieldCheck, X } from 'lucide-react';
 import PortfolioScene from './PortfolioScene';
 import AvatarChat from './AvatarChat';
 import ThemeToggle from './ThemeToggle';
 import './styles.css';
 import './ai-avatar.css';
+import './theme-refine.css';
 
 const PROFILE_IMAGE = 'https://raw.githubusercontent.com/Nithishrish23/Nithish-portfolio/98f873233766d9efe6688b559262306092e7545d/static/images/1727781988320.jpg';
 const EMAIL = 'nithishkumar140700@gmail.com';
@@ -38,7 +38,12 @@ const experience = [
   { period: 'DEC 2022 — MAR 2023', role: 'Data Analyst Intern', company: 'Skill-Lync', text: 'Trend and correlation analysis with Tableau and Excel visualizations.' },
 ];
 
-const skills = ['Python', 'FastAPI', 'Flask', 'Django', 'React', 'Next.js', 'PostgreSQL', 'MySQL', 'SQL', 'AI / ML', 'LLMs', 'RAG', 'AI Agents', 'MCP', 'OpenAI', 'Claude', 'Gemini', 'TensorFlow', 'OpenCV', 'YOLO', 'Voice AI', 'Azure AI', 'Redis', 'Celery', 'Selenium', 'Pytest', 'Git'];
+const technologyGroups = [
+  { number: '01', title: 'AI & LLM', lead: 'Intelligence layer', items: ['LLMs', 'RAG', 'AI Agents', 'MCP', 'OpenAI', 'Claude', 'Gemini', 'Ollama'] },
+  { number: '02', title: 'Backend & Data', lead: 'Systems layer', items: ['Python', 'FastAPI', 'Django', 'Flask', 'PostgreSQL', 'MySQL', 'Redis', 'Celery'] },
+  { number: '03', title: 'Frontend & 3D', lead: 'Experience layer', items: ['React', 'Next.js', 'Vite', 'Three.js', 'JavaScript', 'Tailwind', 'WebGL'] },
+  { number: '04', title: 'Quality & Cloud', lead: 'Delivery layer', items: ['Azure AI', 'TensorFlow', 'YOLO', 'OpenCV', 'Selenium', 'Pytest', 'Git'] },
+];
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -69,7 +74,7 @@ function App() {
     <header className="nav-wrap"><nav className="nav container">
       <button className="brand" onClick={() => go('home')} aria-label="Back to home"><span className="brand-mark"><img className="brand-photo" src={PROFILE_IMAGE} alt="Nithish Kumar"/><i/></span><span><strong>Nithish Kumar</strong><small>AI ENGINEER · FULL STACK</small></span></button>
       <div className={`nav-links ${menuOpen ? 'open' : ''}`}>{['about', 'work', 'experience', 'contact'].map((item) => <button key={item} onClick={() => go(item)}>{item}</button>)}<a href="https://github.com/Nithishrish23" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={14}/></a></div>
-      <div className="nav-actions"><ThemeToggle/><button className="menu-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation">{menuOpen ? <X/> : <Menu/>}</button><button className="nav-cta" onClick={() => go('contact')}>Let's connect <ArrowUpRight size={15}/></button></div>
+      <div className="nav-actions"><ThemeToggle/><button className="nav-cta" onClick={() => go('contact')}>Let's connect <ArrowUpRight size={15}/></button><button className="menu-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation">{menuOpen ? <X/> : <Menu/>}</button></div>
     </nav></header>
 
     <main>
@@ -87,7 +92,7 @@ function App() {
 
       <section id="experience" className="section experience-section"><div className="container"><div className="section-head"><span className="section-number">04</span><div><p className="section-kicker">CAREER</p><h2>Experience with <span>depth.</span></h2></div></div><div className="experience-layout"><div className="experience-intro"><p>Engineering across AI, software, analytics and full-stack product development.</p><div className="experience-rule"/><span>2022 — NOW</span></div><div className="timeline">{experience.map(item => <article key={item.company}><span className="period">{item.period}</span><div><h3>{item.role}</h3><h4>{item.company}</h4><p>{item.text}</p></div></article>)}</div></div></div></section>
 
-      <section className="section stack-section"><div className="container"><div className="stack-banner"><div><p className="section-kicker">TECHNOLOGY</p><h2>One stack.<br/><span>Many layers.</span></h2></div><p>Python-first backend engineering combined with modern frontend, AI infrastructure, data systems and cloud tooling.</p></div><div className="skill-cloud">{skills.map(skill => <span key={skill}>{skill}</span>)}</div></div></section>
+      <section className="section stack-section"><div className="container"><div className="stack-banner"><div><p className="section-kicker">TECHNOLOGY</p><h2>Engineered in <span>layers.</span></h2></div><p>A focused toolkit across intelligence, backend systems, interfaces, 3D experiences and production delivery.</p></div><div className="technology-grid">{technologyGroups.map(group => <article className="technology-card" key={group.title}><div className="technology-top"><span>{group.number}</span><small>{group.lead}</small></div><h3>{group.title}</h3><div className="technology-items">{group.items.map(item => <span key={item}>{item}</span>)}</div></article>)}</div></div></section>
 
       <section id="contact" className="section contact-section"><div className="container contact-wrap"><div className="contact-copy"><span className="section-number">05</span><p className="section-kicker">LET'S BUILD</p><h2>Have a hard problem?<br/><span>Let's make it software.</span></h2><p>For AI products, intelligent automation, full-stack systems or engineering opportunities, send a message.</p><div className="direct-contact"><a href={`mailto:${EMAIL}`}><Mail size={17}/> {EMAIL}</a><span><MapPin size={17}/> Chennai, Tamil Nadu, India</span></div></div><form className="contact-form" onSubmit={submit}><div className="form-title"><span>CONTACT</span><b>Tell me what you're building.</b></div><div className="form-row"><input required value={form.fullname} onChange={e => setField('fullname', e.target.value)} placeholder="Full name"/><input required type="email" value={form.email} onChange={e => setField('email', e.target.value)} placeholder="Email address"/></div><div className="form-row"><input required value={form.country} onChange={e => setField('country', e.target.value)} placeholder="Country"/><input required value={form.mobile} onChange={e => setField('mobile', e.target.value)} placeholder="Mobile number"/></div><textarea required value={form.message} onChange={e => setField('message', e.target.value)} placeholder="Tell me about the project or opportunity" rows="6"/><button className="primary-btn send-btn" disabled={sending}>{sending ? 'Saving…' : <>Send message <Send size={16}/></>}</button>{status.message && <div className={`form-status ${status.type}`}>{status.message}</div>}</form></div></section>
     </main>
