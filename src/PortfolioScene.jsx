@@ -14,112 +14,188 @@ export default function PortfolioScene() {
     if (!mount) return undefined;
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x080b0f, 0.045);
-
-    const camera = new THREE.PerspectiveCamera(31, 1, 0.1, 100);
-    camera.position.set(0.05, 1.25, 6.4);
+    const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
+    camera.position.set(0, 0.85, 7.9);
+    camera.lookAt(0, 0.1, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.setSize(Math.max(mount.clientWidth, 1), Math.max(mount.clientHeight, 1));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMappingExposure = 1.2;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setClearColor(0x000000, 0);
     mount.appendChild(renderer.domElement);
 
-    scene.add(new THREE.HemisphereLight(0xb8c7d8, 0x080b0f, 1.55));
-
-    const key = new THREE.DirectionalLight(0xe8f0f6, 3.1);
-    key.position.set(3.5, 5.5, 4.5);
+    const hemi = new THREE.HemisphereLight(0xf4f8ff, 0x6f7c8d, 2.2);
+    scene.add(hemi);
+    const key = new THREE.DirectionalLight(0xffffff, 4.4);
+    key.position.set(3.5, 6.5, 5.5);
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
     scene.add(key);
+    const blueFill = new THREE.PointLight(0x2f80ed, 15, 14, 2);
+    blueFill.position.set(-3.6, 3.0, 4.0);
+    scene.add(blueFill);
+    const warmFill = new THREE.PointLight(0xffc58a, 5.5, 11, 2);
+    warmFill.position.set(3.4, 2.4, 2.6);
+    scene.add(warmFill);
 
-    const greenRim = new THREE.PointLight(0x39d353, 45, 11, 2);
-    greenRim.position.set(-3.2, 2.6, -2.2);
-    scene.add(greenRim);
+    const stage = new THREE.Group();
+    stage.position.y = 0.05;
+    scene.add(stage);
 
-    const blueRim = new THREE.PointLight(0x58a6ff, 32, 10, 2);
-    blueRim.position.set(3.4, 1.7, -2.8);
-    scene.add(blueRim);
+    // Cozy developer room: floor, wall, window panels, desk, monitor, shelves, plant and framed note.
+    const wall = new THREE.Mesh(
+      new THREE.PlaneGeometry(12, 8),
+      new THREE.MeshStandardMaterial({ color: 0xf3f7fb, roughness: 1 })
+    );
+    wall.position.set(0, 1.75, -2.75);
+    stage.add(wall);
 
-    const group = new THREE.Group();
-    scene.add(group);
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(12, 10),
+      new THREE.MeshStandardMaterial({ color: 0xdfe8f0, roughness: 0.94 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -2.0;
+    floor.receiveShadow = true;
+    stage.add(floor);
 
-    // Developer-style orbital geometry: thin technical rings instead of a sci-fi halo.
-    const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x39d353, transparent: true, opacity: 0.34 });
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.72, 0.004, 8, 180), ringMaterial);
-    ring.rotation.x = Math.PI / 2.25;
-    ring.position.y = 0.05;
-    group.add(ring);
+    const windowFrame = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
+    const windowGlass = new THREE.MeshStandardMaterial({ color: 0xcce5fb, roughness: 0.35, metalness: 0.05, transparent: true, opacity: 0.72 });
+    const window = new THREE.Mesh(new THREE.BoxGeometry(2.65, 3.0, 0.08), windowGlass);
+    window.position.set(-4.2, 1.25, -2.62);
+    stage.add(window);
+    const frameV = new THREE.Mesh(new THREE.BoxGeometry(0.07, 3.1, 0.14), windowFrame);
+    frameV.position.set(-4.2, 1.25, -2.51);
+    stage.add(frameV);
+    const frameH = new THREE.Mesh(new THREE.BoxGeometry(2.75, 0.07, 0.14), windowFrame);
+    frameH.position.set(-4.2, 1.25, -2.51);
+    stage.add(frameH);
 
-    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(2.28, 0.0025, 8, 180), new THREE.MeshBasicMaterial({ color: 0x58a6ff, transparent: true, opacity: 0.2 }));
-    ring2.rotation.x = Math.PI / 2.08;
-    ring2.rotation.z = 0.52;
-    ring2.position.y = -0.18;
-    group.add(ring2);
+    const shelf = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.08, 0.34), windowFrame);
+    shelf.position.set(3.5, 1.55, -2.35);
+    stage.add(shelf);
+    const shelf2 = shelf.clone();
+    shelf2.position.y = 0.35;
+    stage.add(shelf2);
 
-    const grid = new THREE.GridHelper(6.5, 26, 0x26313b, 0x182129);
-    grid.position.y = -2.02;
-    grid.material.transparent = true;
-    grid.material.opacity = 0.28;
-    group.add(grid);
+    const desk = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.12, 1.0), new THREE.MeshStandardMaterial({ color: 0xb9824d, roughness: 0.9 }));
+    desk.position.set(-0.2, 0.35, -1.75);
+    desk.castShadow = true;
+    stage.add(desk);
+    [-1.65, 1.25].forEach((x) => {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.11, 1.45, 0.11), new THREE.MeshStandardMaterial({ color: 0x8d5b35, roughness: 0.9 }));
+      leg.position.set(x, -0.37, -1.75);
+      stage.add(leg);
+    });
 
-    const particleGeometry = new THREE.BufferGeometry();
-    const particleCount = 420;
-    const particlePositions = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount; i += 1) {
-      const radius = 2.5 + Math.random() * 4.5;
-      const angle = Math.random() * Math.PI * 2;
-      particlePositions[i * 3] = Math.cos(angle) * radius;
-      particlePositions[i * 3 + 1] = (Math.random() - 0.45) * 4.8;
-      particlePositions[i * 3 + 2] = Math.sin(angle) * radius - 1.2;
+    const monitorFrame = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.05, 0.09), new THREE.MeshStandardMaterial({ color: 0x162330, roughness: 0.42, metalness: 0.18 }));
+    monitorFrame.position.set(-0.18, 1.15, -1.72);
+    monitorFrame.castShadow = true;
+    stage.add(monitorFrame);
+    const monitorScreen = new THREE.Mesh(new THREE.PlaneGeometry(1.53, 0.78), new THREE.MeshBasicMaterial({ color: 0x14283a }));
+    monitorScreen.position.set(-0.18, 1.15, -1.67);
+    stage.add(monitorScreen);
+    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.35, 0.1), new THREE.MeshStandardMaterial({ color: 0x465564, roughness: 0.5 }));
+    stand.position.set(-0.18, 0.59, -1.72);
+    stage.add(stand);
+
+    const plantPot = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 0.4, 18), new THREE.MeshStandardMaterial({ color: 0xd48c55, roughness: 0.92 }));
+    plantPot.position.set(3.5, -0.05, -2.02);
+    stage.add(plantPot);
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x54886a, roughness: 1 });
+    for (let i = 0; i < 10; i += 1) {
+      const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), leafMat);
+      const a = (i / 10) * Math.PI * 2;
+      leaf.scale.set(0.5, 1.25, 0.35);
+      leaf.position.set(3.5 + Math.cos(a) * 0.28, 0.35 + (i % 3) * 0.12, -2.02 + Math.sin(a) * 0.22);
+      leaf.rotation.z = a * 0.35;
+      stage.add(leaf);
     }
-    particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-    const particles = new THREE.Points(particleGeometry, new THREE.PointsMaterial({ color: 0x7ee787, size: 0.014, transparent: true, opacity: 0.48, sizeAttenuation: true }));
-    scene.add(particles);
+
+    const poster = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, 0.07), new THREE.MeshStandardMaterial({ color: 0xd3dde8, roughness: 0.9 }));
+    poster.position.set(1.9, 1.9, -2.48);
+    stage.add(poster);
+    const posterFace = new THREE.Mesh(new THREE.PlaneGeometry(1.04, 1.23), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    posterFace.position.set(1.9, 1.9, -2.44);
+    stage.add(posterFace);
+
+    // Blue ambient floor strip and warm desk light are restrained so the avatar remains primary.
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.035, 0.055), new THREE.MeshBasicMaterial({ color: 0x4b94e8, transparent: true, opacity: 0.5 }));
+    strip.position.set(-0.1, -1.76, -2.57);
+    stage.add(strip);
 
     const modelRoot = new THREE.Group();
-    modelRoot.position.y = -2.25;
-    modelRoot.scale.setScalar(0.001);
-    group.add(modelRoot);
+    modelRoot.position.set(0.8, -0.18, 0.12);
+    stage.add(modelRoot);
 
-    let model;
+    const avatarShadow = new THREE.Mesh(
+      new THREE.CircleGeometry(0.95, 64),
+      new THREE.MeshBasicMaterial({ color: 0x294866, transparent: true, opacity: 0.18, depthWrite: false })
+    );
+    avatarShadow.rotation.x = -Math.PI / 2;
+    avatarShadow.scale.set(1.55, 0.7, 1);
+    avatarShadow.position.set(0.8, -1.93, 0.3);
+    stage.add(avatarShadow);
+
+    let model = null;
+    let mixer = null;
+    let targetX = 0;
+    let targetY = 0;
+    let elapsed = 0;
+    const clock = new THREE.Clock();
     const loader = new GLTFLoader();
+
     loader.load(
       MODEL_URL,
       (gltf) => {
         model = gltf.scene;
+        model.traverse((node) => {
+          if (node.isMesh) {
+            node.frustumCulled = false;
+            node.castShadow = true;
+            node.receiveShadow = true;
+          }
+        });
         const box = new THREE.Box3().setFromObject(model);
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
-        const maxSize = Math.max(size.x, size.y, size.z) || 1;
-        const scale = 4.15 / maxSize;
+        const height = size.y || 1;
+        const scale = 3.35 / height;
         model.scale.setScalar(scale);
-        model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
-        model.traverse((node) => {
-          if (node.isMesh) {
-            node.castShadow = false;
-            node.receiveShadow = false;
-          }
-        });
+        model.position.set(-center.x * scale, -center.y * scale - 0.04, -center.z * scale);
         modelRoot.add(model);
+
+        if (gltf.animations?.length) {
+          mixer = new THREE.AnimationMixer(model);
+          const idle = gltf.animations.find((clip) => /idle|stand|breath|casual|relax/i.test(clip.name)) || gltf.animations[0];
+          mixer.clipAction(idle).reset().fadeIn(0.6).play();
+        }
         setLoaded(true);
       },
       undefined,
-      () => setFailed(true)
+      (error) => {
+        console.error('GLB avatar failed to load:', error);
+        setFailed(true);
+      },
     );
 
-    let targetX = 0;
-    let targetY = 0;
     const onPointerMove = (event) => {
       const rect = mount.getBoundingClientRect();
-      targetX = ((event.clientX - rect.left) / rect.width - 0.5) * 0.18;
-      targetY = ((event.clientY - rect.top) / rect.height - 0.5) * 0.11;
+      targetX = THREE.MathUtils.clamp(((event.clientX - rect.left) / rect.width - 0.5) * 2, -1, 1);
+      targetY = THREE.MathUtils.clamp(((event.clientY - rect.top) / rect.height - 0.5) * 2, -1, 1);
     };
+    const onPointerLeave = () => { targetX = 0; targetY = 0; };
     mount.addEventListener('pointermove', onPointerMove);
+    mount.addEventListener('pointerleave', onPointerLeave);
 
     const resize = () => {
-      const width = mount.clientWidth || 1;
-      const height = mount.clientHeight || 1;
+      const width = Math.max(mount.clientWidth, 1);
+      const height = Math.max(mount.clientHeight, 1);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
@@ -127,25 +203,21 @@ export default function PortfolioScene() {
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(mount);
 
-    const clock = new THREE.Clock();
     let raf = 0;
-    let elapsed = 0;
     const animate = () => {
       raf = requestAnimationFrame(animate);
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
-      const intro = Math.min(elapsed / 2.15, 1);
-      const eased = 1 - Math.pow(1 - intro, 4);
-      modelRoot.position.y = THREE.MathUtils.lerp(-2.25, 0, eased);
-      modelRoot.scale.setScalar(THREE.MathUtils.lerp(0.001, 1, eased));
-      if (model) model.rotation.y += delta * 0.14;
-      ring.rotation.z += delta * 0.09;
-      ring2.rotation.z -= delta * 0.05;
-      particles.rotation.y += delta * 0.008;
-      group.rotation.y = THREE.MathUtils.lerp(group.rotation.y, targetX, 0.04);
-      group.rotation.x = THREE.MathUtils.lerp(group.rotation.x, targetY, 0.04);
-      camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetX * 0.55, 0.03);
-      camera.position.y = THREE.MathUtils.lerp(camera.position.y, 1.25 - targetY * 0.35, 0.03);
+      const breath = Math.sin(elapsed * 1.1) * 0.008;
+      modelRoot.position.y = -0.18 + breath;
+      modelRoot.rotation.y = THREE.MathUtils.lerp(modelRoot.rotation.y, targetX * 0.025, 0.05);
+      modelRoot.rotation.x = THREE.MathUtils.lerp(modelRoot.rotation.x, targetY * 0.008, 0.05);
+      avatarShadow.scale.x = 1.55 + Math.sin(elapsed * 1.1) * 0.012;
+      avatarShadow.scale.y = 0.7 + Math.sin(elapsed * 1.1) * 0.008;
+      if (mixer) mixer.update(delta * 0.72);
+      camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetX * 0.025, 0.025);
+      camera.position.y = THREE.MathUtils.lerp(camera.position.y, 0.85 - targetY * 0.02, 0.025);
+      camera.lookAt(0.35, 0.08, 0);
       renderer.render(scene, camera);
     };
     animate();
@@ -154,24 +226,17 @@ export default function PortfolioScene() {
       cancelAnimationFrame(raf);
       resizeObserver.disconnect();
       mount.removeEventListener('pointermove', onPointerMove);
+      mount.removeEventListener('pointerleave', onPointerLeave);
+      mixer?.stopAllAction();
       renderer.dispose();
-      particleGeometry.dispose();
-      ring.geometry.dispose();
-      ring.material.dispose();
-      ring2.geometry.dispose();
-      ring2.material.dispose();
-      grid.geometry.dispose();
-      grid.material.dispose();
-      mount.removeChild(renderer.domElement);
+      if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
     };
   }, []);
 
   return (
-    <div className="scene-shell" aria-label="Interactive 3D portrait">
+    <div className={`scene-shell ${loaded ? 'is-loaded' : ''} ${failed ? 'is-failed' : ''}`} aria-label="Interactive 3D developer workspace">
       <div ref={mountRef} className="three-canvas" />
-      <div className="scene-glow" />
-      <div className="scene-label scene-label-top"><span />THREE.JS / GLB / INTERACTIVE</div>
-      <div className="scene-label scene-label-bottom">{failed ? 'MODEL MISSING · public/nithish-model.glb' : loaded ? 'MODEL ONLINE · 60 FPS TARGET' : 'LOADING GLB ASSET…'}</div>
+      {failed && <div className="scene-error">Avatar could not be loaded</div>}
     </div>
   );
 }
