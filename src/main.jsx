@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
 import { ArrowUpRight, BrainCircuit, Bot, Code2, ExternalLink, Github, Mail, MapPin, Menu, Send, ShieldCheck, X } from 'lucide-react';
 import PortfolioScene from './PortfolioScene';
 import AvatarChat from './AvatarChat';
