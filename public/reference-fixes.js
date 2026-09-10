@@ -1,24 +1,48 @@
 (() => {
   // Prevent remote font/CSS requests from blocking the deferred React module.
-  // The visual stylesheet is enabled immediately after the app module gets a chance to boot.
   document.querySelectorAll('link[rel="stylesheet"]').forEach((link) => {
     link.media = 'print';
     setTimeout(() => { link.media = 'all'; }, 0);
   });
 
   const TARGET_EMAIL = 'nithishkumar.job@gmail.com';
+  const OPENAI_LOGO = '/openai-logo.svg';
+  const RAG_LOGO = '/rag-logo.svg';
+
   const style = document.createElement('style');
   style.textContent = `
     .hero-actions { margin-top: 30px !important; gap: 14px !important; }
     .hero-actions .primary-btn { transform: translateY(2px); }
-    .technology-items img[src*="simpleicons.org/openai"] {
-      content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%231765ff' d='M24 5.5c4.8 0 8.9 2.9 10.7 7.1 4.4.2 8.1 3.4 9 7.7.9 4.4-1.3 8.8-5.1 11.1 1.1 4.3-.5 8.8-4.3 11.1-3.8 2.3-8.7 1.7-11.8-1.5-4 2.1-8.9 1.2-11.7-2.1-2.8-3.4-2.9-8.3-.3-11.8-2.5-3.5-2.1-8.4.9-11.6 3-3.1 7.9-3.7 11.7-1.5C24.5 6.2 24.2 5.9 24 5.5Z'/%3E%3C/svg%3E") !important;
+
+    /* Dark theme: the technology banner must use the same dark surface as the section. */
+    html[data-theme='dark'] .stack-banner {
+      background: #07111f !important;
+      color: #f2f7ff !important;
+      border-color: #203550 !important;
     }
-    .technology-items img[src*="simpleicons.org/weaviate"] {
-      content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect x='4' y='4' width='40' height='40' rx='12' fill='%23edf4ff'/%3E%3Ccircle cx='15' cy='15' r='4' fill='none' stroke='%231765ff' stroke-width='3'/%3E%3Ccircle cx='33' cy='15' r='4' fill='none' stroke='%231765ff' stroke-width='3'/%3E%3Ccircle cx='15' cy='33' r='4' fill='none' stroke='%231765ff' stroke-width='3'/%3E%3Ccircle cx='33' cy='33' r='4' fill='none' stroke='%231765ff' stroke-width='3'/%3E%3Cpath d='M19 15h10M15 19v10M33 19v10M19 33h10' stroke='%231765ff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+    html[data-theme='dark'] .stack-banner .section-kicker { color: #6eaaff !important; }
+    html[data-theme='dark'] .stack-banner h2 { color: #f1f6ff !important; }
+    html[data-theme='dark'] .stack-banner h2 span { color: #5aa2ff !important; }
+    html[data-theme='dark'] .stack-banner > p { color: #9db0c8 !important; }
+
+    /* Technology logos are local so they cannot become broken-image placeholders. */
+    .technology-items img[alt='OpenAI logo'],
+    .technology-items img[alt='RAG logo'] {
+      width: 28px !important;
+      height: 28px !important;
+      object-fit: contain !important;
+      display: block !important;
+      margin: 0 !important;
     }
   `;
   document.head.appendChild(style);
+
+  const applyTechnologyLogos = () => {
+    document.querySelectorAll('.technology-items img').forEach((img) => {
+      if (img.alt === 'OpenAI logo') img.src = OPENAI_LOGO;
+      if (img.alt === 'RAG logo') img.src = RAG_LOGO;
+    });
+  };
 
   const replaceEmail = () => {
     document.querySelectorAll('a[href^="mailto:"]').forEach((a) => {
@@ -37,7 +61,15 @@
     });
   };
 
-  const run = () => replaceEmail();
+  const run = () => {
+    replaceEmail();
+    applyTechnologyLogos();
+    setTimeout(applyTechnologyLogos, 0);
+    setTimeout(applyTechnologyLogos, 100);
+    setTimeout(applyTechnologyLogos, 500);
+    setTimeout(applyTechnologyLogos, 1200);
+  };
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
   else run();
 })();
