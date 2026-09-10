@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import './workspace-fallback.css';
 
 const MODEL_URL = '/nithish-model.glb';
+const PROFILE_IMAGE = 'https://raw.githubusercontent.com/Nithishrish23/Nithish-portfolio/98f873233766d9efe6688b559262306092e7545d/static/images/1727781988320.jpg';
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
 export default function PortfolioScene() {
@@ -27,9 +28,14 @@ export default function PortfolioScene() {
     let model;
     let playerRoot;
     let enemyRoot;
+    let playerShadow;
+    let enemyShadow;
+    let slash;
+    let floorGlow;
     let keydownHandler;
     let keyupHandler;
     let restartHandler;
+    let baseModelY = 0;
 
     const start = async () => {
       try {
@@ -38,10 +44,10 @@ export default function PortfolioScene() {
         if (cancelled) return;
 
         const scene = new THREE.Scene();
-        scene.fog = new THREE.Fog(0xeaf3ff, 8, 26);
-        const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 60);
-        camera.position.set(0, 1.05, 7.7);
-        const target = new THREE.Vector3(0, -0.25, -1.2);
+        scene.fog = new THREE.Fog(0xeaf3ff, 9, 28);
+        const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
+        camera.position.set(0, 0.85, 8.6);
+        const target = new THREE.Vector3(0, -0.38, -1.0);
         camera.lookAt(target);
 
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -49,19 +55,19 @@ export default function PortfolioScene() {
         renderer.setSize(Math.max(mount.clientWidth, 1), Math.max(mount.clientHeight, 1), false);
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.18;
+        renderer.toneMappingExposure = 1.16;
         renderer.setClearColor(0, 0);
         mount.appendChild(renderer.domElement);
 
-        scene.add(new THREE.HemisphereLight(0xf8fbff, 0x30465d, 2.6));
-        const key = new THREE.DirectionalLight(0xffffff, 4.2);
+        scene.add(new THREE.HemisphereLight(0xf8fbff, 0x30465d, 2.8));
+        const key = new THREE.DirectionalLight(0xffffff, 4.5);
         key.position.set(-4, 8, 7);
         scene.add(key);
-        const rim = new THREE.DirectionalLight(0x2f80ed, 3.2);
+        const rim = new THREE.DirectionalLight(0x2f80ed, 3.6);
         rim.position.set(5, 4, -6);
         scene.add(rim);
-        const arenaLight = new THREE.PointLight(0x1769ff, 7, 16, 2);
-        arenaLight.position.set(0, 1, 0);
+        const arenaLight = new THREE.PointLight(0x1769ff, 8, 18, 2);
+        arenaLight.position.set(0, 0.5, -0.8);
         scene.add(arenaLight);
 
         const world = new THREE.Group();
@@ -71,34 +77,43 @@ export default function PortfolioScene() {
         const floor = new THREE.Mesh(new THREE.CylinderGeometry(5.25, 5.65, 0.3, 64), material(0x1d3147, 0.82, 0.2));
         floor.position.y = -2.04;
         world.add(floor);
-        const floorGlow = new THREE.Mesh(new THREE.RingGeometry(2.15, 4.65, 64), new THREE.MeshBasicMaterial({ color: 0x2f80ed, transparent: true, opacity: 0.16, side: THREE.DoubleSide }));
+        floorGlow = new THREE.Mesh(new THREE.RingGeometry(2.15, 4.65, 64), new THREE.MeshBasicMaterial({ color: 0x2f80ed, transparent: true, opacity: 0.16, side: THREE.DoubleSide }));
         floorGlow.rotation.x = -Math.PI / 2;
         floorGlow.position.y = -1.88;
         world.add(floorGlow);
-        const innerRing = new THREE.Mesh(new THREE.RingGeometry(2.02, 2.08, 64), new THREE.MeshBasicMaterial({ color: 0x5aa2ff, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+        const innerRing = new THREE.Mesh(new THREE.RingGeometry(2.02, 2.08, 64), new THREE.MeshBasicMaterial({ color: 0x5aa2ff, transparent: true, opacity: 0.72, side: THREE.DoubleSide }));
         innerRing.rotation.x = -Math.PI / 2;
         innerRing.position.y = -1.86;
         world.add(innerRing);
 
-        for (let i = 0; i < 8; i += 1) {
-          const angle = (i / 8) * Math.PI * 2;
-          const pillar = new THREE.Group();
-          pillar.position.set(Math.cos(angle) * 5.05, -0.1, Math.sin(angle) * 5.05 - 0.8);
-          const body = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, 3.8, 10), material(0x8ea8c0, 0.72, 0.18));
-          pillar.add(body);
-          const light = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.2, 0.08), new THREE.MeshBasicMaterial({ color: 0x2f80ed }));
-          light.position.y = 0.1;
-          pillar.add(light);
-          world.add(pillar);
-        }
+        // Keep the arena visually open. Side pylons replace the old front-facing pillars
+        // so nothing sits between the camera and the player's avatar.
+        [-1, 1].forEach((side) => {
+          const pylon = new THREE.Group();
+          pylon.position.set(side * 4.65, -0.05, -1.15);
+          const body = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 3.7, 12), material(0x8ea8c0, 0.68, 0.22));
+          pylon.add(body);
+          const light = new THREE.Mesh(new THREE.BoxGeometry(0.07, 2.25, 0.07), new THREE.MeshBasicMaterial({ color: 0x2f80ed }));
+          light.position.y = 0.05;
+          pylon.add(light);
+          world.add(pylon);
+        });
 
-        const backWall = new THREE.Mesh(new THREE.PlaneGeometry(18, 8), new THREE.MeshBasicMaterial({ color: 0xdbe9f6, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
-        backWall.position.set(0, 1.4, -5.5);
+        const backWall = new THREE.Mesh(new THREE.PlaneGeometry(18, 8), new THREE.MeshBasicMaterial({ color: 0xdbe9f6, transparent: true, opacity: 0.58, side: THREE.DoubleSide }));
+        backWall.position.set(0, 1.35, -5.5);
         world.add(backWall);
         for (let i = -5; i <= 5; i += 1) {
-          const beam = new THREE.Mesh(new THREE.BoxGeometry(0.025, 6, 0.025), new THREE.MeshBasicMaterial({ color: 0x7eb5ec, transparent: true, opacity: 0.25 }));
-          beam.position.set(i * 1.55, 1.2, -5.42);
+          const beam = new THREE.Mesh(new THREE.BoxGeometry(0.025, 6, 0.025), new THREE.MeshBasicMaterial({ color: 0x7eb5ec, transparent: true, opacity: 0.2 }));
+          beam.position.set(i * 1.55, 1.15, -5.42);
           world.add(beam);
+        }
+
+        // Holographic combat rails add depth without blocking the fighter.
+        for (let i = 0; i < 3; i += 1) {
+          const rail = new THREE.Mesh(new THREE.TorusGeometry(2.55 + i * 0.42, 0.012, 6, 96), new THREE.MeshBasicMaterial({ color: 0x69b3ff, transparent: true, opacity: 0.18 - i * 0.035 }));
+          rail.rotation.x = Math.PI / 2;
+          rail.position.set(0, -1.55 + i * 0.28, -1.15);
+          world.add(rail);
         }
 
         const makeEnemy = () => {
@@ -137,26 +152,26 @@ export default function PortfolioScene() {
         };
 
         playerRoot = new THREE.Group();
-        playerRoot.position.set(0, 0, 0.35);
+        playerRoot.position.set(-0.85, 0, 0.2);
         world.add(playerRoot);
         enemyRoot = makeEnemy();
-        enemyRoot.position.set(0, 0, -2.65);
-        enemyRoot.rotation.y = Math.PI;
+        enemyRoot.position.set(0.9, 0, -1.15);
+        enemyRoot.rotation.y = 0.12;
         world.add(enemyRoot);
 
-        const playerShadow = new THREE.Mesh(new THREE.CircleGeometry(0.72, 32), new THREE.MeshBasicMaterial({ color: 0x071321, transparent: true, opacity: 0.28, depthWrite: false }));
+        playerShadow = new THREE.Mesh(new THREE.CircleGeometry(0.72, 32), new THREE.MeshBasicMaterial({ color: 0x071321, transparent: true, opacity: 0.28, depthWrite: false }));
         playerShadow.rotation.x = -Math.PI / 2;
         playerShadow.scale.set(1.4, 0.72, 1);
-        playerShadow.position.set(0, -1.86, 0.35);
+        playerShadow.position.set(-0.85, -1.86, 0.2);
         world.add(playerShadow);
-        const enemyShadow = playerShadow.clone();
-        enemyShadow.position.set(0, -1.86, -2.65);
+        enemyShadow = playerShadow.clone();
+        enemyShadow.position.set(0.9, -1.86, -1.15);
         enemyShadow.scale.set(1.05, 0.62, 1);
         world.add(enemyShadow);
 
-        const slash = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.055, 8, 40, Math.PI * 0.78), new THREE.MeshBasicMaterial({ color: 0x5aa2ff, transparent: true, opacity: 0 }));
+        slash = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.055, 8, 40, Math.PI * 0.78), new THREE.MeshBasicMaterial({ color: 0x5aa2ff, transparent: true, opacity: 0 }));
         slash.rotation.x = Math.PI / 2;
-        slash.position.set(0, -0.25, -1.4);
+        slash.position.set(0.1, -0.25, -1.0);
         world.add(slash);
 
         const loader = new GLTFLoader();
@@ -170,17 +185,22 @@ export default function PortfolioScene() {
               node.receiveShadow = false;
             }
           });
+
+          // Fit the real GLB by its measured world-space bounds. Do not rotate bones
+          // procedurally; the native rig animation owns the arms, hands and legs.
           const box = new THREE.Box3().setFromObject(model);
           const size = box.getSize(new THREE.Vector3());
-          const scale = 2.65 / Math.max(size.y, 0.001);
+          const scale = 2.72 / Math.max(size.y, 0.001);
           model.scale.setScalar(scale);
           const scaledBox = new THREE.Box3().setFromObject(model);
           const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
           model.position.x -= scaledCenter.x;
-          model.position.y += -scaledBox.min.y - 1.86;
           model.position.z -= scaledCenter.z;
+          model.position.y += -scaledBox.min.y - 1.86;
+          baseModelY = model.position.y;
           model.rotation.y = 0;
           playerRoot.add(model);
+
           mixer = new THREE.AnimationMixer(model);
           if (gltf.animations.length) {
             const action = mixer.clipAction(gltf.animations[0]);
@@ -194,6 +214,7 @@ export default function PortfolioScene() {
 
         const state = { time: 0, playerHp: 100, enemyHp: 100, combo: 0, action: null, actionUntil: 0, block: false, enemyAttackAt: 2.1, enemyHitUntil: 0, enemyHit: false, playerHitUntil: 0, playerHit: false, round: 1, messageUntil: 0, message: 'READY', shake: 0 };
         const showMessage = (text, duration = 0.55) => { state.message = text; state.messageUntil = state.time + duration; setMessage(text); };
+
         const attack = (type = 'light') => {
           if (state.playerHp <= 0 || state.enemyHp <= 0 || state.action || state.time < state.actionUntil) return;
           state.action = type;
@@ -202,6 +223,7 @@ export default function PortfolioScene() {
           fightRef.current.block = false;
           state.shake = type === 'heavy' ? 0.14 : 0.08;
           playerRoot.position.z = type === 'heavy' ? -0.28 : -0.18;
+          slash.position.x = 0.05;
           slash.material.opacity = 0.85;
           slash.scale.setScalar(type === 'heavy' ? 1.28 : 1);
           slash.rotation.z = type === 'heavy' ? -0.6 : 0.2;
@@ -222,11 +244,13 @@ export default function PortfolioScene() {
             showMessage('MISS');
           }
         };
+
         const block = (active) => {
           state.block = active;
           fightRef.current.block = active;
           if (active) showMessage('GUARD', 0.2);
         };
+
         const dash = () => {
           if (state.playerHp <= 0 || state.enemyHp <= 0 || state.action) return;
           state.action = 'dash';
@@ -235,6 +259,7 @@ export default function PortfolioScene() {
           state.shake = 0.04;
           showMessage('DASH', 0.25);
         };
+
         const restart = () => {
           state.playerHp = 100;
           state.enemyHp = 100;
@@ -247,8 +272,8 @@ export default function PortfolioScene() {
           state.playerHit = false;
           state.round += 1;
           state.shake = 0;
-          playerRoot.position.set(0, 0, 0.35);
-          enemyRoot.position.set(0, 0, -2.65);
+          playerRoot.position.set(-0.85, 0, 0.2);
+          enemyRoot.position.set(0.9, 0, -1.15);
           enemyRoot.rotation.z = 0;
           setPlayerHealth(100);
           setEnemyHealth(100);
@@ -293,8 +318,10 @@ export default function PortfolioScene() {
           state.time += dt;
           if (mixer) mixer.update(dt);
           if (state.action && state.time >= state.actionUntil) state.action = null;
-          playerRoot.position.z = THREE.MathUtils.damp(playerRoot.position.z, state.action === 'dash' ? -0.52 : state.action ? -0.18 : 0.35, state.action ? 18 : 10, dt);
-          if (model) model.position.y = THREE.MathUtils.damp(model.position.y, -1.86 - Math.abs(Math.sin(state.time * 2.1)) * 0.018, 7, dt);
+
+          const playerTargetZ = state.action === 'dash' ? -0.52 : state.action ? -0.18 : 0.2;
+          playerRoot.position.z = THREE.MathUtils.damp(playerRoot.position.z, playerTargetZ, state.action ? 18 : 10, dt);
+          if (model) model.position.y = baseModelY + Math.sin(state.time * 2.1) * 0.008;
 
           if (state.enemyHp > 0 && state.playerHp > 0 && state.time >= state.enemyAttackAt) {
             state.enemyAttackAt = state.time + 2 + Math.random() * 1.3;
@@ -306,20 +333,25 @@ export default function PortfolioScene() {
               state.shake = 0.12;
               setPlayerHealth(state.playerHp);
               showMessage('RIVAL HIT');
-            } else if (state.block) { showMessage('BLOCKED'); state.shake = 0.03; }
+            } else if (state.block) {
+              showMessage('BLOCKED');
+              state.shake = 0.03;
+            }
           }
+
           if (state.enemyHit && state.time >= state.enemyHitUntil) state.enemyHit = false;
           if (state.playerHit && state.time >= state.playerHitUntil) state.playerHit = false;
-          enemyRoot.position.x = THREE.MathUtils.damp(enemyRoot.position.x, Math.sin(state.time * 0.8) * 0.48, 3, dt);
+          enemyRoot.position.x = THREE.MathUtils.damp(enemyRoot.position.x, 0.9 + Math.sin(state.time * 0.8) * 0.24, 3, dt);
           enemyRoot.position.y = state.enemyHit ? 0.08 : 0;
-          enemyRoot.rotation.y = Math.PI + Math.sin(state.time * 0.8) * 0.06;
+          enemyRoot.rotation.y = 0.12 + Math.sin(state.time * 0.8) * 0.06;
           enemyRoot.rotation.z = THREE.MathUtils.damp(enemyRoot.rotation.z, state.enemyHp <= 0 ? -1.15 : 0, 5, dt);
           slash.material.opacity = THREE.MathUtils.damp(slash.material.opacity, 0, 12, dt);
           floorGlow.material.opacity = 0.13 + Math.sin(state.time * 2) * 0.035;
           state.shake = Math.max(0, state.shake - dt * 0.7);
           camera.position.x = THREE.MathUtils.damp(camera.position.x, state.shake ? (Math.random() - 0.5) * state.shake : 0, 14, dt);
-          camera.position.y = THREE.MathUtils.damp(camera.position.y, 1.05, 14, dt);
+          camera.position.y = THREE.MathUtils.damp(camera.position.y, 0.85, 14, dt);
           camera.lookAt(target);
+
           if (state.enemyHp <= 0 || state.playerHp <= 0) {
             fightRef.current.running = false;
             setGameOver(true);
@@ -328,6 +360,7 @@ export default function PortfolioScene() {
           }
           renderer.render(scene, camera);
         };
+
         fightRef.current.running = true;
         animate();
       } catch (error) {
@@ -366,8 +399,19 @@ export default function PortfolioScene() {
       <div ref={mountRef} className="three-canvas" />
       <div className="fight-vignette" />
       <div className="fight-topbar">
-        <div className="fighter-card player-card"><div className="fighter-label">PLAYER 01</div><strong>AI COMBATANT</strong><div className="health-track"><span style={{ width: `${playerHealth}%` }} /></div><small>{Math.max(0, Math.round(playerHealth))} HP</small></div>
-        <div className="fight-round"><span>ROUND</span><strong>{String(round).padStart(2, '0')}</strong><small>TRAINING ARENA</small></div>
+        <div className="fighter-card player-card">
+          <div className="player-identity">
+            <img className="player-photo" src={PROFILE_IMAGE} alt="Nithish Kumar" />
+            <div className="player-copy">
+              <div className="fighter-label">PLAYER 01 · YOU</div>
+              <strong>NITHISH KUMAR</strong>
+              <small>AI ENGINEER · FULL STACK</small>
+            </div>
+          </div>
+          <div className="health-track"><span style={{ width: `${playerHealth}%` }} /></div>
+          <small className="hp-value">{Math.max(0, Math.round(playerHealth))} HP</small>
+        </div>
+        <div className="fight-round"><span>ROUND</span><strong>{String(round).padStart(2, '0')}</strong><small>AI COMBAT LAB</small></div>
         <div className="fighter-card enemy-card"><div className="fighter-label">OPPONENT</div><strong>ARENA BOT</strong><div className="health-track enemy-track"><span style={{ width: `${enemyHealth}%` }} /></div><small>{Math.max(0, Math.round(enemyHealth))} HP</small></div>
       </div>
       <div className="fight-status"><span>COMBAT SYSTEM</span><strong>{message}</strong>{combo > 1 && <em>{combo} HIT COMBO</em>}</div>
