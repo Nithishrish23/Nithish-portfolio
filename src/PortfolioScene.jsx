@@ -3,471 +3,131 @@ import './workspace-fallback.css';
 
 const MODEL_URL = '/nithish-model.glb';
 const LANES = [-1.18, 0, 1.18];
-const TRACK_LENGTH = 18;
-const TRACK_SEGMENTS = 10;
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
 export default function PortfolioScene() {
-  const mountRef = useRef(null);
-  const runnerRef = useRef(false);
-  const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [running, setRunning] = useState(false);
-  const [score, setScore] = useState(0);
-  const [coins, setCoins] = useState(0);
-  const [gameOver, setGameOver] = useState(false);
+  const mountRef = useRef(null), runnerRef = useRef(false);
+  const [loaded, setLoaded] = useState(false), [failed, setFailed] = useState(false);
+  const [running, setRunning] = useState(false), [score, setScore] = useState(0), [coins, setCoins] = useState(0), [gameOver, setGameOver] = useState(false);
+  useEffect(() => { runnerRef.current = running; }, [running]);
 
   useEffect(() => {
-    runnerRef.current = running;
-  }, [running]);
-
-  useEffect(() => {
-    const mount = mountRef.current;
-    if (!mount) return undefined;
-
-    let cancelled = false;
-    let raf = 0;
-    let idleTimer = 0;
-    let renderer = null;
-    let resizeObserver = null;
-    let mixer = null;
-    let cleanup = () => {};
-    let modelRoot = null;
-    let model = null;
-    const keys = new Set();
-
-    const state = {
-      lane: 1,
-      targetLane: 1,
-      jumpY: 0,
-      jumpVelocity: 0,
-      sliding: false,
-      speed: 8.2,
-      distance: 0,
-      score: 0,
-      coins: 0,
-      alive: true,
-      shake: 0,
-    };
+    const mount = mountRef.current; if (!mount) return undefined;
+    let cancelled = false, raf = 0, idle = 0, renderer, observer, mixer, model, root, rig, baseScale = 1;
+    const keys = new Set(), actions = {};
+    const s = { lane: 1, y: 0, vy: 0, slide: false, speed: 8.2, distance: 0, score: 0, coins: 0, alive: true, time: 0, shake: 0 };
 
     const start = async () => {
       try {
         const THREE = await import('three');
         const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
         if (cancelled) return;
-
-        const scene = new THREE.Scene();
-        scene.fog = new THREE.Fog(0xeaf3ff, 9, 30);
-
-        const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 80);
-        camera.position.set(0, 1.25, 6.8);
-        camera.lookAt(0, -0.45, -4);
-
+        const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0xeaf3ff, 9, 32);
+        const camera = new THREE.PerspectiveCamera(42, 1, .1, 80); camera.position.set(0, 1.05, 7.6);
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
-        renderer.setSize(Math.max(mount.clientWidth, 1), Math.max(mount.clientHeight, 1), false);
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.15;
-        renderer.setClearColor(0x000000, 0);
-        renderer.domElement.setAttribute('aria-hidden', 'true');
-        mount.appendChild(renderer.domElement);
+        renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.35)); renderer.setSize(Math.max(mount.clientWidth, 1), Math.max(mount.clientHeight, 1), false);
+        renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15; renderer.setClearColor(0, 0); mount.appendChild(renderer.domElement);
+        scene.add(new THREE.HemisphereLight(0xf5f9ff, 0x65778b, 2.5));
+        const sun = new THREE.DirectionalLight(0xffffff, 3.5); sun.position.set(-5, 9, 6); scene.add(sun);
+        const blue = new THREE.PointLight(0x2f80ed, 8, 18, 2); blue.position.set(0, 2, 2); scene.add(blue);
+        const world = new THREE.Group(); scene.add(world);
+        const mat = (c, r=.8, m=0) => new THREE.MeshStandardMaterial({ color:c, roughness:r, metalness:m });
 
-        scene.add(new THREE.HemisphereLight(0xf5f9ff, 0x6c7890, 2.5));
-        const sun = new THREE.DirectionalLight(0xffffff, 3.4);
-        sun.position.set(-5, 9, 6);
-        scene.add(sun);
-        const blueLight = new THREE.PointLight(0x2f80ed, 9, 18, 2);
-        blueLight.position.set(0, 2, 2);
-        scene.add(blueLight);
-
-        const mat = (color, roughness = 0.8, metalness = 0) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
-        const world = new THREE.Group();
-        scene.add(world);
-
-        // Endless three-lane runner track.
-        const trackPieces = [];
-        for (let i = 0; i < TRACK_SEGMENTS; i += 1) {
-          const piece = new THREE.Group();
-          piece.position.z = -i * TRACK_LENGTH;
-
-          const road = new THREE.Mesh(new THREE.BoxGeometry(4.35, 0.22, TRACK_LENGTH), mat(0x23364a, 0.88));
-          road.position.y = -1.92;
-          piece.add(road);
-
-          const shoulderL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, TRACK_LENGTH), mat(0x1769ff, 0.5, 0.2));
-          shoulderL.position.set(-2.25, -1.82, 0);
-          piece.add(shoulderL);
-          const shoulderR = shoulderL.clone();
-          shoulderR.position.x = 2.25;
-          piece.add(shoulderR);
-
-          [-0.59, 0.59].forEach((x) => {
-            const line = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.025, TRACK_LENGTH), new THREE.MeshBasicMaterial({ color: 0x9cc8ff, transparent: true, opacity: 0.32 }));
-            line.position.set(x, -1.79, 0);
-            piece.add(line);
-          });
-
-          // Neon edge markers create a strong endless-runner rhythm.
-          for (let z = -TRACK_LENGTH / 2 + 1; z < TRACK_LENGTH / 2; z += 2.2) {
-            [-2.42, 2.42].forEach((x) => {
-              const marker = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.09, 0.38), new THREE.MeshBasicMaterial({ color: 0x5aa2ff }));
-              marker.position.set(x, -1.7, z);
-              piece.add(marker);
-            });
-          }
-          world.add(piece);
-          trackPieces.push(piece);
+        const tracks = [];
+        for (let i=0;i<10;i++) {
+          const g = new THREE.Group(); g.position.z = -i*18;
+          const road = new THREE.Mesh(new THREE.BoxGeometry(4.35,.22,18), mat(0x23364a,.88)); road.position.y=-1.92; g.add(road);
+          [-2.25,2.25].forEach(x => { const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.18,18),mat(0x1769ff,.5,.2)); e.position.set(x,-1.82,0); g.add(e); });
+          [-.59,.59].forEach(x => { const l=new THREE.Mesh(new THREE.BoxGeometry(.035,.025,18),new THREE.MeshBasicMaterial({color:0x9cc8ff,transparent:true,opacity:.32})); l.position.set(x,-1.79,0); g.add(l); });
+          for(let z=-8;z<9;z+=2.2) [-2.42,2.42].forEach(x=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.06,.09,.38),new THREE.MeshBasicMaterial({color:0x5aa2ff}));m.position.set(x,-1.7,z);g.add(m);});
+          world.add(g); tracks.push(g);
         }
 
-        // Background towers and glowing data columns are recycled with the road.
-        const scenery = [];
-        for (let i = 0; i < 18; i += 1) {
-          const group = new THREE.Group();
-          group.position.set(i % 2 ? 4.4 : -4.4, -1.72, -i * 10 - 5);
-          const h = 1.5 + (i % 5) * 0.55;
-          const tower = new THREE.Mesh(new THREE.BoxGeometry(0.8 + (i % 3) * 0.25, h, 0.8), mat(i % 2 ? 0xc9d8e8 : 0xaec6df, 0.92));
-          tower.position.y = h / 2 - 0.12;
-          group.add(tower);
-          for (let row = 0; row < 4; row += 1) {
-            const glow = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.045, 0.03), new THREE.MeshBasicMaterial({ color: row % 2 ? 0x4b94e8 : 0x72b7ff, transparent: true, opacity: 0.65 }));
-            glow.position.set(0, 0.25 + row * 0.3, 0.42);
-            group.add(glow);
-          }
-          world.add(group);
-          scenery.push(group);
+        const scenery=[];
+        for(let i=0;i<18;i++){
+          const g=new THREE.Group(); g.position.set(i%2?4.4:-4.4,-1.72,-i*10-5); const h=1.5+(i%5)*.55;
+          const t=new THREE.Mesh(new THREE.BoxGeometry(.8+(i%3)*.25,h,.8),mat(i%2?0xc9d8e8:0xaec6df,.92)); t.position.y=h/2-.12; g.add(t);
+          for(let r=0;r<4;r++){const b=new THREE.Mesh(new THREE.BoxGeometry(.52,.045,.03),new THREE.MeshBasicMaterial({color:r%2?0x4b94e8:0x72b7ff,transparent:true,opacity:.65}));b.position.set(0,.25+r*.3,.42);g.add(b);} world.add(g);scenery.push(g);
         }
 
-        // Reusable obstacles and coins. Their z positions are randomized whenever recycled.
-        const obstacles = [];
-        const coinsObjects = [];
-        const randomLane = () => Math.floor(Math.random() * 3);
-        const obstacleMat = mat(0x13283b, 0.5, 0.35);
-        const obstacleAccent = new THREE.MeshBasicMaterial({ color: 0x4b94e8 });
-        const createObstacle = () => {
-          const group = new THREE.Group();
-          const body = new THREE.Mesh(new THREE.BoxGeometry(0.82, 1.15, 0.72), obstacleMat);
-          body.position.y = -1.25;
-          group.add(body);
-          const light = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.055, 0.04), obstacleAccent);
-          light.position.set(0, -1.03, 0.37);
-          group.add(light);
-          const cap = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.07, 0.8), new THREE.MeshBasicMaterial({ color: 0x1769ff, transparent: true, opacity: 0.75 }));
-          cap.position.y = -0.7;
-          group.add(cap);
-          return group;
+        const obstacles=[], coinObjects=[], randLane=()=>Math.floor(Math.random()*3);
+        const makeObstacle=()=>{const g=new THREE.Group();const b=new THREE.Mesh(new THREE.BoxGeometry(.82,1.15,.72),mat(0x13283b,.5,.35));b.position.y=-1.25;g.add(b);const a=new THREE.Mesh(new THREE.BoxGeometry(.58,.055,.04),new THREE.MeshBasicMaterial({color:0x4b94e8}));a.position.set(0,-1.03,.37);g.add(a);const c=new THREE.Mesh(new THREE.BoxGeometry(.55,.07,.8),new THREE.MeshBasicMaterial({color:0x1769ff,transparent:true,opacity:.75}));c.position.y=-.7;g.add(c);return g;};
+        const makeCoin=()=>{const g=new THREE.Group();const c=new THREE.Mesh(new THREE.TorusGeometry(.16,.055,10,22),new THREE.MeshStandardMaterial({color:0xffd166,emissive:0xa96a00,emissiveIntensity:.35,metalness:.7,roughness:.25}));c.rotation.y=Math.PI/2;g.add(c);g.add(new THREE.Mesh(new THREE.SphereGeometry(.25,10,8),new THREE.MeshBasicMaterial({color:0xffd166,transparent:true,opacity:.1})));return g;};
+        for(let i=0;i<13;i++){const o=makeObstacle();o.position.set(LANES[randLane()],-.02,-18-i*15-Math.random()*8);world.add(o);obstacles.push({object:o});}
+        for(let i=0;i<22;i++){const c=makeCoin();c.position.set(LANES[randLane()],.2,-10-i*8-Math.random()*5);world.add(c);coinObjects.push({object:c,collected:false});}
+
+        root=new THREE.Group();root.position.set(0,-.05,.55);world.add(root);
+        const shadow=new THREE.Mesh(new THREE.CircleGeometry(.82,28),new THREE.MeshBasicMaterial({color:0x061321,transparent:true,opacity:.24,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.scale.set(1.35,.62,1);shadow.position.set(0,-1.91,.55);world.add(shadow);
+
+        const findBone = patterns => { const found=[]; model?.traverse(n=>{if(n.isBone)found.push(n);}); return found.find(b=>patterns.some(p=>p.test(b.name)))||null; };
+        const makeRig = () => {
+          const r={pelvis:findBone([/hips/i,/pelvis/i]),spine:findBone([/spine1/i,/spine/i]),head:findBone([/head/i]),
+            la:findBone([/left.*upper.?arm/i,/leftarm/i,/mixamorig.*leftarm/i,/l.*upperarm/i]),ra:findBone([/right.*upper.?arm/i,/rightarm/i,/mixamorig.*rightarm/i,/r.*upperarm/i]),
+            lfa:findBone([/left.*forearm/i,/left.*lower.?arm/i,/leftforearm/i,/mixamorig.*leftforearm/i]),rfa:findBone([/right.*forearm/i,/right.*lower.?arm/i,/rightforearm/i,/mixamorig.*rightforearm/i]),
+            lt:findBone([/left.*thigh/i,/left.*upleg/i,/left.*upper.?leg/i,/mixamorig.*leftupleg/i]),rt:findBone([/right.*thigh/i,/right.*upleg/i,/right.*upper.?leg/i,/mixamorig.*rightupleg/i]),
+            ls:findBone([/left.*calf/i,/left.*shin/i,/left.*lower.?leg/i,/mixamorig.*leftleg/i]),rs:findBone([/right.*calf/i,/right.*shin/i,/right.*lower.?leg/i,/mixamorig.*rightleg/i]),
+            lf:findBone([/left.*foot/i,/left.*ankle/i,/mixamorig.*leftfoot/i]),rf:findBone([/right.*foot/i,/right.*ankle/i,/mixamorig.*rightfoot/i])};
+          Object.values(r).forEach(b=>{if(b)b.userData.runnerRest={x:b.rotation.x,y:b.rotation.y,z:b.rotation.z};}); return r;
         };
-        const createCoin = () => {
-          const group = new THREE.Group();
-          const coin = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.055, 10, 22), new THREE.MeshStandardMaterial({ color: 0xffd166, emissive: 0xa96a00, emissiveIntensity: 0.35, metalness: 0.7, roughness: 0.25 }));
-          coin.rotation.y = Math.PI / 2;
-          group.add(coin);
-          const glow = new THREE.Mesh(new THREE.SphereGeometry(0.25, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.1 }));
-          group.add(glow);
-          return group;
+        const procedural = (t,dt) => {
+          if(!rig)return; const q=Math.sin(t*11.5), o=-q, set=(b,x=0,y=0,z=0,k=18)=>{if(!b?.userData.runnerRest)return;const a=b.userData.runnerRest;b.rotation.x=THREE.MathUtils.damp(b.rotation.x,a.x+x,k,dt);b.rotation.y=THREE.MathUtils.damp(b.rotation.y,a.y+y,k,dt);b.rotation.z=THREE.MathUtils.damp(b.rotation.z,a.z+z,k,dt);};
+          set(rig.pelvis,.02*q,0,.025*q,11);set(rig.spine,.035*q,0,.018*q,11);set(rig.head,-.02*q,0,0,10);
+          set(rig.la,0,0,-.55*q);set(rig.ra,0,0,-.55*o);set(rig.lfa,-.16+.08*q);set(rig.rfa,-.16+.08*o);
+          set(rig.lt,.72*o);set(rig.rt,.72*q);set(rig.ls,.9*Math.max(0,q));set(rig.rs,.9*Math.max(0,o));set(rig.lf,-.38*Math.max(0,q));set(rig.rf,-.38*Math.max(0,o));
+          root.position.y=-.05+s.y+Math.abs(Math.sin(t*11.5))*.045;
         };
 
-        for (let i = 0; i < 13; i += 1) {
-          const obstacle = createObstacle();
-          obstacle.position.set(LANES[randomLane()], -0.02, -18 - i * 15 - Math.random() * 8);
-          world.add(obstacle);
-          obstacles.push({ object: obstacle, lane: 1, active: true });
-        }
-        for (let i = 0; i < 22; i += 1) {
-          const coin = createCoin();
-          coin.position.set(LANES[randomLane()], 0.2, -10 - i * 8 - Math.random() * 5);
-          world.add(coin);
-          coinsObjects.push({ object: coin, lane: 1, collected: false });
-        }
+        const loader=new GLTFLoader(); let realRun=false, current=null;
+        const play=name=>{if(!mixer||!actions[name])return;const a=actions[name];if(current===a)return;a.reset().setLoop(THREE.LoopRepeat,Infinity).fadeIn(.16).play();if(current)current.fadeOut(.16);current=a;};
+        loader.load(MODEL_URL,gltf=>{
+          if(cancelled)return; model=gltf.scene; model.traverse(n=>{if(n.isMesh){n.frustumCulled=true;n.castShadow=false;n.receiveShadow=false;}});
+          const box=new THREE.Box3().setFromObject(model), size=box.getSize(new THREE.Vector3()), center=box.getCenter(new THREE.Vector3()); baseScale=2.55/(size.y||1);model.scale.setScalar(baseScale);model.position.set(-center.x*baseScale,-center.y*baseScale-.04,-center.z*baseScale);model.rotation.y=Math.PI;root.add(model);
+          rig=makeRig(); mixer=new THREE.AnimationMixer(model); gltf.animations.forEach(c=>{actions[c.name]=mixer.clipAction(c);});
+          const run=gltf.animations.find(c=>/(^|\b)(run|running|jog|jogging|sprint|sprinting)(\b|$)/i.test(c.name)); if(run){realRun=true;play(run.name);} console.info('[3D runner] clips',gltf.animations.map(c=>c.name));
+          setLoaded(true);setRunning(true);runnerRef.current=true;
+        },undefined,e=>{console.error('GLB avatar failed to load:',e);setFailed(true);});
 
-        // Character is kept in the foreground, centered and lit so it never disappears into the set.
-        modelRoot = new THREE.Group();
-        modelRoot.position.set(0, -0.05, 0.55);
-        world.add(modelRoot);
-        const avatarShadow = new THREE.Mesh(new THREE.CircleGeometry(0.82, 28), new THREE.MeshBasicMaterial({ color: 0x061321, transparent: true, opacity: 0.24, depthWrite: false }));
-        avatarShadow.rotation.x = -Math.PI / 2;
-        avatarShadow.scale.set(1.35, 0.62, 1);
-        avatarShadow.position.set(0, -1.91, 0.55);
-        world.add(avatarShadow);
+        const recycle=(entry,list,spacing)=>{const far=Math.min(...list.map(x=>x.object.position.z));entry.object.position.z=far-spacing*(.8+Math.random()*1.25);entry.object.position.x=LANES[randLane()];if('collected'in entry)entry.collected=false;entry.object.visible=true;};
+        const jump=()=>{if(s.y<=.01&&s.alive){s.vy=6.2;s.slide=false;}};
+        const slide=()=>{if(s.y<.08&&s.alive)s.slide=true;setTimeout(()=>{s.slide=false;},520);};
+        const keydown=e=>{const k=e.key.toLowerCase();if(['arrowleft','arrowright','arrowup','arrowdown','a','d','w','s',' '].includes(k))e.preventDefault();if(!runnerRef.current)return;if(!s.alive&&(k==='r'||k==='enter')){window.dispatchEvent(new CustomEvent('runner-restart'));return;}if(['arrowleft','a','arrowright','d'].includes(k))keys.add(k);if(['arrowup','w',' '].includes(k))jump();if(['arrowdown','s'].includes(k))slide();};
+        const keyup=e=>keys.delete(e.key.toLowerCase());
+        const restart=()=>{Object.assign(s,{lane:1,y:0,vy:0,slide:false,speed:8.2,distance:0,score:0,coins:0,alive:true,time:0,shake:0});obstacles.forEach((e,i)=>{e.object.position.z=-18-i*15-Math.random()*8;e.object.position.x=LANES[randLane()];});coinObjects.forEach((e,i)=>{e.object.position.z=-10-i*8-Math.random()*5;e.object.position.x=LANES[randLane()];e.collected=false;e.object.visible=true;});setScore(0);setCoins(0);setGameOver(false);setRunning(true);runnerRef.current=true;};
+        window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);window.addEventListener('runner-restart',restart);
 
-        const loader = new GLTFLoader();
-        const actions = {};
-        let currentAction = null;
-        const play = (name, loop = true) => {
-          if (!mixer || !actions[name]) return;
-          const next = actions[name];
-          if (currentAction === next && loop) return;
-          next.reset();
-          next.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
-          next.clampWhenFinished = !loop;
-          next.fadeIn(0.18).play();
-          if (currentAction && currentAction !== next) currentAction.fadeOut(0.18);
-          currentAction = next;
-        };
-
-        loader.load(MODEL_URL, (gltf) => {
-          if (cancelled) return;
-          model = gltf.scene;
-          model.traverse((node) => {
-            if (node.isMesh) {
-              node.frustumCulled = true;
-              node.castShadow = false;
-              node.receiveShadow = false;
-            }
-          });
-          const box = new THREE.Box3().setFromObject(model);
-          const size = box.getSize(new THREE.Vector3());
-          const center = box.getCenter(new THREE.Vector3());
-          const scale = 2.95 / (size.y || 1);
-          model.scale.setScalar(scale);
-          model.position.set(-center.x * scale, -center.y * scale - 0.04, -center.z * scale);
-          // GLB rest pose is oriented toward +Z; runner travels toward -Z.
-          model.rotation.y = Math.PI;
-          modelRoot.add(model);
-          mixer = new THREE.AnimationMixer(model);
-          gltf.animations.forEach((clip) => { actions[clip.name] = mixer.clipAction(clip); });
-          const runName = gltf.animations.find((clip) => /run|jog|walk/i.test(clip.name))?.name;
-          const idleName = gltf.animations.find((clip) => /idle|stand|breath|casual|relax/i.test(clip.name))?.name;
-          if (runName) play(runName);
-          else if (idleName) play(idleName);
-          setLoaded(true);
-          setRunning(true);
-          runnerRef.current = true;
-        }, undefined, (error) => {
-          console.error('GLB avatar failed to load:', error);
-          setFailed(true);
-        });
-
-        const resetObject = (entry, farthest, spacing) => {
-          entry.object.position.z = farthest - spacing * (0.65 + Math.random() * 1.2);
-          entry.lane = randomLane();
-          entry.object.position.x = LANES[entry.lane];
-          if ('collected' in entry) entry.collected = false;
-          entry.object.visible = true;
-        };
-
-        const nearestBehind = (entries) => Math.max(...entries.map((entry) => entry.object.position.z));
-        const laneChanged = () => {
-          if (keys.has('arrowleft') || keys.has('a')) {
-            state.targetLane = clamp(state.targetLane - 1, 0, 2);
-            keys.delete('arrowleft'); keys.delete('a');
+        const resize=()=>{const w=Math.max(mount.clientWidth,1),h=Math.max(mount.clientHeight,1);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);};observer=new ResizeObserver(resize);observer.observe(mount);resize();
+        const clock=new THREE.Clock();let lastScore=-1,lastCoins=-1;
+        const animate=()=>{
+          if(cancelled)return;raf=requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.033),active=runnerRef.current&&s.alive;
+          if(keys.has('arrowleft')||keys.has('a')){s.lane=clamp(s.lane-1,0,2);keys.delete('arrowleft');keys.delete('a');}if(keys.has('arrowright')||keys.has('d')){s.lane=clamp(s.lane+1,0,2);keys.delete('arrowright');keys.delete('d');}
+          root.position.x=THREE.MathUtils.damp(root.position.x,LANES[s.lane],14,dt);
+          if(active){s.speed=Math.min(15.5,s.speed+dt*.12);s.distance+=s.speed*dt;s.score+=s.speed*dt*2.2;s.time+=dt;s.vy-=17*dt;s.y=Math.max(0,s.y+s.vy*dt);if(s.y===0)s.vy=0;const adv=s.speed*dt;
+            tracks.forEach(g=>{g.position.z+=adv;if(g.position.z>18)g.position.z-=180;});scenery.forEach(g=>{g.position.z+=adv*.92;if(g.position.z>7)g.position.z-=180;});
+            obstacles.forEach(e=>{e.object.position.z+=adv;if(e.object.position.z>6)recycle(e,obstacles,15);const dz=Math.abs(e.object.position.z-.55),dx=Math.abs(e.object.position.x-root.position.x);if(dz<.62&&dx<.4&&s.y<.68&&!s.slide){s.alive=false;s.shake=.24;setGameOver(true);setRunning(false);runnerRef.current=false;}});
+            coinObjects.forEach(e=>{e.object.position.z+=adv;e.object.rotation.y+=dt*6;if(e.object.position.z>6)recycle(e,coinObjects,8);const dz=Math.abs(e.object.position.z-.55),dx=Math.abs(e.object.position.x-root.position.x);if(!e.collected&&dz<.62&&dx<.4&&Math.abs(s.y-.18)<.85){e.collected=true;e.object.visible=false;s.coins++;}});
           }
-          if (keys.has('arrowright') || keys.has('d')) {
-            state.targetLane = clamp(state.targetLane + 1, 0, 2);
-            keys.delete('arrowright'); keys.delete('d');
-          }
-        };
-        const jump = () => {
-          if (state.jumpY <= 0.01 && state.alive) {
-            state.jumpVelocity = 6.2;
-            state.sliding = false;
-          }
-        };
-        const slide = () => {
-          if (state.jumpY < 0.08 && state.alive) state.sliding = true;
-          window.setTimeout(() => { state.sliding = false; }, 520);
-        };
-
-        const onKeyDown = (event) => {
-          const key = event.key.toLowerCase();
-          if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'a', 'd', 'w', 's', ' '].includes(key)) event.preventDefault();
-          if (!runnerRef.current) return;
-          if (!state.alive && (key === 'r' || key === 'enter')) {
-            window.dispatchEvent(new CustomEvent('runner-restart'));
-            return;
-          }
-          if (key === 'arrowleft' || key === 'a' || key === 'arrowright' || key === 'd') keys.add(key);
-          if (key === 'arrowup' || key === 'w' || key === ' ') jump();
-          if (key === 'arrowdown' || key === 's') slide();
-        };
-        const onKeyUp = (event) => keys.delete(event.key.toLowerCase());
-        const onRestart = () => {
-          state.lane = 1; state.targetLane = 1; state.jumpY = 0; state.jumpVelocity = 0; state.sliding = false; state.distance = 0; state.score = 0; state.coins = 0; state.alive = true; state.shake = 0;
-          obstacles.forEach((entry, i) => { entry.object.position.z = -18 - i * 15 - Math.random() * 8; entry.lane = randomLane(); entry.object.position.x = LANES[entry.lane]; entry.active = true; });
-          coinsObjects.forEach((entry, i) => { entry.object.position.z = -10 - i * 8 - Math.random() * 5; entry.lane = randomLane(); entry.object.position.x = LANES[entry.lane]; entry.collected = false; entry.object.visible = true; });
-          setScore(0); setCoins(0); setGameOver(false); runnerRef.current = true; setRunning(true);
-        };
-        window.addEventListener('keydown', onKeyDown);
-        window.addEventListener('keyup', onKeyUp);
-        window.addEventListener('runner-restart', onRestart);
-
-        const resize = () => {
-          if (!renderer) return;
-          const width = Math.max(mount.clientWidth, 1);
-          const height = Math.max(mount.clientHeight, 1);
-          camera.aspect = width / height;
-          camera.updateProjectionMatrix();
-          renderer.setSize(width, height, false);
-        };
-        resizeObserver = new ResizeObserver(resize);
-        resizeObserver.observe(mount);
-        resize();
-
-        const animate = () => {
-          if (cancelled) return;
-          raf = requestAnimationFrame(animate);
-          const delta = Math.min(new THREE.Clock().getDelta(), 0.033);
-          // Use a fixed practical delta when the browser creates a new clock above.
-          const dt = Math.min(0.022, delta || 0.016);
-          const active = runnerRef.current && state.alive;
-
-          laneChanged();
-          state.lane = THREE.MathUtils.damp(state.lane, state.targetLane, 14, dt);
-          const targetX = LANES[Math.round(state.targetLane)];
-          modelRoot.position.x = THREE.MathUtils.damp(modelRoot.position.x, targetX, 13, dt);
-
-          if (active) {
-            state.speed = Math.min(15.5, state.speed + dt * 0.12);
-            state.distance += state.speed * dt;
-            state.score += state.speed * dt * 2.2;
-            state.jumpVelocity -= 17 * dt;
-            state.jumpY = Math.max(0, state.jumpY + state.jumpVelocity * dt);
-            if (state.jumpY === 0) state.jumpVelocity = 0;
-
-            const worldAdvance = state.speed * dt;
-            trackPieces.forEach((piece) => {
-              piece.position.z += worldAdvance;
-              if (piece.position.z > TRACK_LENGTH) piece.position.z -= TRACK_LENGTH * TRACK_SEGMENTS;
-            });
-            scenery.forEach((item) => {
-              item.position.z += worldAdvance * 0.92;
-              if (item.position.z > 7) item.position.z -= 180;
-            });
-            obstacles.forEach((entry) => {
-              entry.object.position.z += worldAdvance;
-              if (entry.object.position.z > 6) resetObject(entry, nearestBehind(obstacles), 15);
-              const dz = Math.abs(entry.object.position.z - 0.55);
-              const dx = Math.abs(entry.object.position.x - modelRoot.position.x);
-              if (dz < 0.62 && dx < 0.38 && state.jumpY < 0.68 && !state.sliding) {
-                state.alive = false;
-                state.shake = 0.24;
-                setGameOver(true);
-                setRunning(false);
-                runnerRef.current = false;
-              }
-            });
-            coinsObjects.forEach((entry) => {
-              entry.object.position.z += worldAdvance;
-              entry.object.rotation.y += dt * 6;
-              entry.object.rotation.z = Math.sin(state.distance * 0.18) * 0.08;
-              if (entry.object.position.z > 6) resetObject(entry, nearestBehind(coinsObjects), 8);
-              const dz = Math.abs(entry.object.position.z - 0.55);
-              const dx = Math.abs(entry.object.position.x - modelRoot.position.x);
-              if (!entry.collected && dz < 0.62 && dx < 0.4 && Math.abs(state.jumpY - 0.18) < 0.85) {
-                entry.collected = true;
-                entry.object.visible = false;
-                state.coins += 1;
-              }
-            });
-          }
-
-          modelRoot.position.y = -0.05 + state.jumpY;
-          if (model) {
-            const targetScaleY = state.sliding ? 0.72 : 1;
-            model.scale.y = THREE.MathUtils.damp(model.scale.y, (2.95 / ((new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3()).y / Math.max(model.scale.y, 0.01)) || 1)) * targetScaleY, 8, dt);
-            model.position.y = THREE.MathUtils.damp(model.position.y, -0.04 + (state.sliding ? -0.28 : 0), 10, dt);
-          }
-          avatarShadow.scale.x = THREE.MathUtils.damp(avatarShadow.scale.x, 1.35 + state.jumpY * 0.18, 8, dt);
-          avatarShadow.position.x = modelRoot.position.x;
-          avatarShadow.position.y = -1.91;
-          avatarShadow.material.opacity = 0.24 - Math.min(state.jumpY * 0.07, 0.14);
-
-          if (mixer) {
-            const runName = Object.keys(actions).find((name) => /run|jog|walk/i.test(name));
-            const idleName = Object.keys(actions).find((name) => /idle|stand|breath|casual|relax/i.test(name));
-            if (state.alive && runName) play(runName);
-            else if (!state.alive && idleName) play(idleName);
-            mixer.update(dt);
-          }
-
-          state.shake = Math.max(0, state.shake - dt);
-          const shakeX = state.shake > 0 ? (Math.random() - 0.5) * state.shake : 0;
-          camera.position.x = THREE.MathUtils.damp(camera.position.x, modelRoot.position.x * 0.18 + shakeX, 5.5, dt);
-          camera.position.y = THREE.MathUtils.damp(camera.position.y, 1.22 + state.jumpY * 0.12, 5.5, dt);
-          camera.lookAt(modelRoot.position.x * 0.08, -0.48 + state.jumpY * 0.04, -4.1);
-          renderer.render(scene, camera);
-
-          if (active && Math.floor(state.score) % 12 === 0) {
-            setScore(Math.floor(state.score));
-            setCoins(state.coins);
-          }
-        };
-        animate();
-
-        cleanup = () => {
-          window.removeEventListener('keydown', onKeyDown);
-          window.removeEventListener('keyup', onKeyUp);
-          window.removeEventListener('runner-restart', onRestart);
-          resizeObserver?.disconnect();
-          cancelAnimationFrame(raf);
-          mixer?.stopAllAction();
-          renderer?.dispose();
-          if (renderer?.domElement && mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
-        };
-      } catch (error) {
-        console.error('3D runner initialization failed:', error);
-        if (!cancelled) setFailed(true);
-      }
+          if(model){const target=baseScale*(s.slide?.74:1);model.scale.y=THREE.MathUtils.damp(model.scale.y,target,10,dt);model.position.y=THREE.MathUtils.damp(model.position.y,-.04+(s.slide?-.28:0),10,dt);}
+          if(realRun&&mixer)mixer.update(dt);else if(active)procedural(s.time,dt);else if(rig)procedural(s.time*.2,dt);
+          shadow.scale.x=THREE.MathUtils.damp(shadow.scale.x,1.35+s.y*.18,8,dt);shadow.position.x=root.position.x;shadow.material.opacity=.24-Math.min(s.y*.07,.14);
+          s.shake=Math.max(0,s.shake-dt);camera.position.x=THREE.MathUtils.damp(camera.position.x,root.position.x*.18+(s.shake?(Math.random()-.5)*s.shake:0),5.5,dt);camera.position.y=THREE.MathUtils.damp(camera.position.y,1.22+s.y*.12,5.5,dt);camera.lookAt(root.position.x*.08,-.48+s.y*.04,-4.1);renderer.render(scene,camera);
+          const ds=Math.floor(s.score);if(ds!==lastScore||s.coins!==lastCoins){lastScore=ds;lastCoins=s.coins;setScore(ds);setCoins(s.coins);}
+        };animate();
+        const cleanupNow=()=>{window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('runner-restart',restart);observer?.disconnect();cancelAnimationFrame(raf);mixer?.stopAllAction();renderer?.dispose();if(renderer?.domElement&&mount.contains(renderer.domElement))mount.removeChild(renderer.domElement);};
+        return cleanupNow;
+      }catch(e){console.error('3D runner initialization failed:',e);if(!cancelled)setFailed(true);return undefined;}
     };
-
-    if ('requestIdleCallback' in window) idleTimer = window.requestIdleCallback(start, { timeout: 1200 });
-    else idleTimer = window.setTimeout(start, 500);
-
-    return () => {
-      cancelled = true;
-      if ('cancelIdleCallback' in window) window.cancelIdleCallback(idleTimer);
-      else window.clearTimeout(idleTimer);
-      cleanup();
-    };
+    let cleanupPromise;
+    if('requestIdleCallback'in window)idle=window.requestIdleCallback(async()=>{cleanupPromise=await start();},{timeout:1200});else idle=window.setTimeout(async()=>{cleanupPromise=await start();},500);
+    return()=>{cancelled=true;if('cancelIdleCallback'in window)window.cancelIdleCallback(idle);else window.clearTimeout(idle);Promise.resolve(cleanupPromise).then(fn=>fn?.());};
   }, []);
 
-  const mobileAction = (action) => {
-    if (action === 'left' || action === 'right') {
-      const key = action === 'left' ? 'a' : 'd';
-      window.dispatchEvent(new KeyboardEvent('keydown', { key }));
-      window.setTimeout(() => window.dispatchEvent(new KeyboardEvent('keyup', { key })), 80);
-    } else if (action === 'jump') {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
-    } else if (action === 'slide') {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 's' }));
-    }
-  };
-
-  const restart = () => window.dispatchEvent(new CustomEvent('runner-restart'));
-
-  return (
-    <div className={`scene-shell runner-shell ${loaded ? 'is-loaded' : ''} ${failed ? 'is-failed' : ''}`} aria-label="Infinite 3D developer runner">
-      <div ref={mountRef} className="three-canvas" />
-      <div className="workspace-fallback" aria-hidden={loaded}>
-        <div className="fallback-window"><i /><i /><i /></div>
-        <div className="fallback-shelf"><span /><span /><span /></div>
-        <div className="fallback-desk"><div className="fallback-monitor"><b /></div><span /></div>
-        <div className="fallback-person" />
-        <div className="fallback-glow" />
-      </div>
-      {!loaded && !failed && <div className="scene-loading"><span>Loading Nithish Run</span></div>}
-      {loaded && !gameOver && (
-        <div className="runner-hud">
-          <div><span>NITHISH RUN</span><strong>BUILD · SHIP · REPEAT</strong></div>
-          <div className="runner-stats"><b>{score.toLocaleString()}</b><small>SCORE</small><b>{coins}</b><small>COINS</small></div>
-          <p>← → change lane · SPACE / ↑ jump · ↓ slide</p>
-        </div>
-      )}
-      {loaded && gameOver && (
-        <div className="runner-gameover">
-          <span>RUN INTERRUPTED</span>
-          <strong>{score.toLocaleString()}</strong>
-          <small>SCORE · {coins} COINS</small>
-          <button onClick={restart}>RUN AGAIN ↗</button>
-        </div>
-      )}
-      {loaded && <div className="runner-mobile-controls">
-        <button onClick={() => mobileAction('left')}>←</button>
-        <button onClick={() => mobileAction('jump')}>↑</button>
-        <button onClick={() => mobileAction('slide')}>↓</button>
-        <button onClick={() => mobileAction('right')}>→</button>
-      </div>}
-      {failed && <div className="scene-error">3D runner unavailable</div>}
-    </div>
-  );
+  const mobileAction=action=>{const key=action==='left'?'a':action==='right'?'d':action==='jump'?' ':'s';window.dispatchEvent(new KeyboardEvent('keydown',{key}));if(action==='left'||action==='right')setTimeout(()=>window.dispatchEvent(new KeyboardEvent('keyup',{key})),80);};
+  return <div className={`scene-shell runner-shell ${loaded?'is-loaded':''} ${failed?'is-failed':''}`} aria-label="Infinite 3D developer runner">
+    <div ref={mountRef} className="three-canvas" />
+    <div className="workspace-fallback" aria-hidden={loaded}><div className="fallback-window"><i/><i/><i/></div><div className="fallback-shelf"><span/><span/><span/></div><div className="fallback-desk"><div className="fallback-monitor"><b/></div><span/></div><div className="fallback-person"/><div className="fallback-glow"/></div>
+    {!loaded&&!failed&&<div className="scene-loading"><span>Loading Nithish Run</span></div>}
+    {loaded&&!gameOver&&<div className="runner-hud"><div><span>NITHISH RUN</span><strong>BUILD · SHIP · REPEAT</strong></div><div className="runner-stats"><b>{score.toLocaleString()}</b><small>SCORE</small><b>{coins}</b><small>COINS</small></div><p>← → change lane · SPACE / ↑ jump · ↓ slide</p></div>}
+    {loaded&&gameOver&&<div className="runner-gameover"><span>RUN INTERRUPTED</span><strong>{score.toLocaleString()}</strong><small>SCORE · {coins} COINS</small><button onClick={()=>window.dispatchEvent(new CustomEvent('runner-restart'))}>RUN AGAIN ↗</button></div>}
+    {loaded&&<div className="runner-mobile-controls"><button onClick={()=>mobileAction('left')}>←</button><button onClick={()=>mobileAction('jump')}>↑</button><button onClick={()=>mobileAction('slide')}>↓</button><button onClick={()=>mobileAction('right')}>→</button></div>}
+  </div>;
 }
