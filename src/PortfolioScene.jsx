@@ -6,7 +6,7 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
 export default function PortfolioScene() {
   const mountRef = useRef(null);
-  const fightRef = useRef({ running: false, action: null, block: false });
+  const fightRef = useRef({ running: false, block: false });
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [playerHealth, setPlayerHealth] = useState(100);
@@ -27,27 +27,9 @@ export default function PortfolioScene() {
     let model;
     let playerRoot;
     let enemyRoot;
-
-    const keys = new Set();
-    const state = {
-      time: 0,
-      playerHp: 100,
-      enemyHp: 100,
-      combo: 0,
-      action: null,
-      actionUntil: 0,
-      block: false,
-      enemyAttackAt: 2.1,
-      enemyHitUntil: 0,
-      enemyHit: false,
-      playerHitUntil: 0,
-      playerHit: false,
-      round: 1,
-      messageUntil: 0,
-      message: 'READY',
-      shake: 0,
-      enemyDirection: 0,
-    };
+    let keydownHandler;
+    let keyupHandler;
+    let restartHandler;
 
     const start = async () => {
       try {
@@ -57,7 +39,6 @@ export default function PortfolioScene() {
 
         const scene = new THREE.Scene();
         scene.fog = new THREE.Fog(0xeaf3ff, 8, 26);
-
         const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 60);
         camera.position.set(0, 1.05, 7.7);
         const target = new THREE.Vector3(0, -0.25, -1.2);
@@ -87,7 +68,6 @@ export default function PortfolioScene() {
         scene.add(world);
         const material = (color, roughness = 0.8, metalness = 0) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
 
-        // Clean fighting arena — deliberately no runner obstacles.
         const floor = new THREE.Mesh(new THREE.CylinderGeometry(5.25, 5.65, 0.3, 64), material(0x1d3147, 0.82, 0.2));
         floor.position.y = -2.04;
         world.add(floor);
@@ -159,7 +139,6 @@ export default function PortfolioScene() {
         playerRoot = new THREE.Group();
         playerRoot.position.set(0, 0, 0.35);
         world.add(playerRoot);
-
         enemyRoot = makeEnemy();
         enemyRoot.position.set(0, 0, -2.65);
         enemyRoot.rotation.y = Math.PI;
@@ -170,7 +149,6 @@ export default function PortfolioScene() {
         playerShadow.scale.set(1.4, 0.72, 1);
         playerShadow.position.set(0, -1.86, 0.35);
         world.add(playerShadow);
-
         const enemyShadow = playerShadow.clone();
         enemyShadow.position.set(0, -1.86, -2.65);
         enemyShadow.scale.set(1.05, 0.62, 1);
@@ -192,24 +170,20 @@ export default function PortfolioScene() {
               node.receiveShadow = false;
             }
           });
-
-          // Fit the supplied avatar to the arena from its actual bounding box.
           const box = new THREE.Box3().setFromObject(model);
           const size = box.getSize(new THREE.Vector3());
           const scale = 2.65 / Math.max(size.y, 0.001);
           model.scale.setScalar(scale);
           const scaledBox = new THREE.Box3().setFromObject(model);
-          model.position.x -= scaledBox.getCenter(new THREE.Vector3()).x;
+          const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+          model.position.x -= scaledCenter.x;
           model.position.y += -scaledBox.min.y - 1.86;
-          model.position.z -= scaledBox.getCenter(new THREE.Vector3()).z;
-          // The imported avatar faces +Z; the camera is also on +Z, so do not turn it backwards.
+          model.position.z -= scaledCenter.z;
           model.rotation.y = 0;
           playerRoot.add(model);
-
           mixer = new THREE.AnimationMixer(model);
           if (gltf.animations.length) {
-            const clip = gltf.animations[0];
-            const action = mixer.clipAction(clip);
+            const action = mixer.clipAction(gltf.animations[0]);
             action.setLoop(THREE.LoopRepeat, Infinity).play();
           }
           setLoaded(true);
@@ -218,23 +192,19 @@ export default function PortfolioScene() {
           setFailed(true);
         });
 
-        const showMessage = (text, duration = 0.55) => {
-          state.message = text;
-          state.messageUntil = state.time + duration;
-          setMessage(text);
-        };
-
+        const state = { time: 0, playerHp: 100, enemyHp: 100, combo: 0, action: null, actionUntil: 0, block: false, enemyAttackAt: 2.1, enemyHitUntil: 0, enemyHit: false, playerHitUntil: 0, playerHit: false, round: 1, messageUntil: 0, message: 'READY', shake: 0 };
+        const showMessage = (text, duration = 0.55) => { state.message = text; state.messageUntil = state.time + duration; setMessage(text); };
         const attack = (type = 'light') => {
-          if (state.playerHp <= 0 || state.action || state.time < state.actionUntil) return;
+          if (state.playerHp <= 0 || state.enemyHp <= 0 || state.action || state.time < state.actionUntil) return;
           state.action = type;
           state.actionUntil = state.time + (type === 'heavy' ? 0.58 : 0.38);
           state.block = false;
+          fightRef.current.block = false;
           state.shake = type === 'heavy' ? 0.14 : 0.08;
           playerRoot.position.z = type === 'heavy' ? -0.28 : -0.18;
           slash.material.opacity = 0.85;
           slash.scale.setScalar(type === 'heavy' ? 1.28 : 1);
           slash.rotation.z = type === 'heavy' ? -0.6 : 0.2;
-
           const hit = Math.random() > (type === 'heavy' ? 0.08 : 0.16);
           if (hit) {
             const damage = type === 'heavy' ? 18 : 9;
@@ -252,22 +222,19 @@ export default function PortfolioScene() {
             showMessage('MISS');
           }
         };
-
         const block = (active) => {
           state.block = active;
           fightRef.current.block = active;
           if (active) showMessage('GUARD', 0.2);
         };
-
         const dash = () => {
-          if (state.playerHp <= 0 || state.action) return;
+          if (state.playerHp <= 0 || state.enemyHp <= 0 || state.action) return;
           state.action = 'dash';
           state.actionUntil = state.time + 0.28;
           playerRoot.position.z = -0.52;
           state.shake = 0.04;
           showMessage('DASH', 0.25);
         };
-
         const restart = () => {
           state.playerHp = 100;
           state.enemyHp = 100;
@@ -282,6 +249,7 @@ export default function PortfolioScene() {
           state.shake = 0;
           playerRoot.position.set(0, 0, 0.35);
           enemyRoot.position.set(0, 0, -2.65);
+          enemyRoot.rotation.z = 0;
           setPlayerHealth(100);
           setEnemyHealth(100);
           setCombo(0);
@@ -291,25 +259,20 @@ export default function PortfolioScene() {
           showMessage('ROUND ' + state.round, 0.9);
         };
 
-        const keydown = (event) => {
+        keydownHandler = (event) => {
           const k = event.key.toLowerCase();
-          if ([' ', 'j', 'k', 'l', 'shift', 'arrowleft', 'arrowright'].includes(k)) event.preventDefault();
+          if ([' ', 'j', 'k', 'l', 'shift', 'arrowdown'].includes(k)) event.preventDefault();
           if (k === 'j' || k === ' ') attack('light');
           else if (k === 'k') attack('heavy');
           else if (k === 'l' || k === 'shift') dash();
           else if (k === 'arrowdown') block(true);
           else if (k === 'r' && (state.playerHp <= 0 || state.enemyHp <= 0)) restart();
-          keys.add(k);
         };
-        const keyup = (event) => {
-          const k = event.key.toLowerCase();
-          keys.delete(k);
-          if (k === 'arrowdown') block(false);
-        };
-        const restartEvent = () => restart();
-        window.addEventListener('keydown', keydown);
-        window.addEventListener('keyup', keyup);
-        window.addEventListener('fight-restart', restartEvent);
+        keyupHandler = (event) => { if (event.key.toLowerCase() === 'arrowdown') block(false); };
+        restartHandler = restart;
+        window.addEventListener('keydown', keydownHandler);
+        window.addEventListener('keyup', keyupHandler);
+        window.addEventListener('fight-restart', restartHandler);
 
         const resize = () => {
           const width = Math.max(mount.clientWidth, 1);
@@ -328,22 +291,13 @@ export default function PortfolioScene() {
           raf = requestAnimationFrame(animate);
           const dt = Math.min(clock.getDelta(), 0.033);
           state.time += dt;
-
           if (mixer) mixer.update(dt);
-
-          if (state.action && state.time >= state.actionUntil) {
-            state.action = null;
-            playerRoot.position.z = THREE.MathUtils.damp(playerRoot.position.z, 0.35, 18, dt);
-          }
-          if (!state.action) playerRoot.position.z = THREE.MathUtils.damp(playerRoot.position.z, 0.35, 11, dt);
-
-          // Subtle stance motion only on the root. The avatar's supplied animation owns the limbs.
-          if (model) {
-            model.position.y = THREE.MathUtils.damp(model.position.y, -1.86 - Math.abs(Math.sin(state.time * 2.1)) * 0.018, 7, dt);
-          }
+          if (state.action && state.time >= state.actionUntil) state.action = null;
+          playerRoot.position.z = THREE.MathUtils.damp(playerRoot.position.z, state.action === 'dash' ? -0.52 : state.action ? -0.18 : 0.35, state.action ? 18 : 10, dt);
+          if (model) model.position.y = THREE.MathUtils.damp(model.position.y, -1.86 - Math.abs(Math.sin(state.time * 2.1)) * 0.018, 7, dt);
 
           if (state.enemyHp > 0 && state.playerHp > 0 && state.time >= state.enemyAttackAt) {
-            state.enemyAttackAt = state.time + 2.0 + Math.random() * 1.3;
+            state.enemyAttackAt = state.time + 2 + Math.random() * 1.3;
             if (!state.block && Math.random() > 0.2) {
               const damage = 7 + Math.floor(Math.random() * 5);
               state.playerHp = clamp(state.playerHp - damage, 0, 100);
@@ -352,44 +306,30 @@ export default function PortfolioScene() {
               state.shake = 0.12;
               setPlayerHealth(state.playerHp);
               showMessage('RIVAL HIT');
-            } else if (state.block) {
-              showMessage('BLOCKED');
-              state.shake = 0.03;
-            }
+            } else if (state.block) { showMessage('BLOCKED'); state.shake = 0.03; }
           }
-
           if (state.enemyHit && state.time >= state.enemyHitUntil) state.enemyHit = false;
           if (state.playerHit && state.time >= state.playerHitUntil) state.playerHit = false;
           enemyRoot.position.x = THREE.MathUtils.damp(enemyRoot.position.x, Math.sin(state.time * 0.8) * 0.48, 3, dt);
           enemyRoot.position.y = state.enemyHit ? 0.08 : 0;
           enemyRoot.rotation.y = Math.PI + Math.sin(state.time * 0.8) * 0.06;
-          if (state.enemyHp <= 0) {
-            enemyRoot.rotation.z = THREE.MathUtils.damp(enemyRoot.rotation.z, -1.15, 5, dt);
-            showMessage('K.O.', 0.1);
-          } else {
-            enemyRoot.rotation.z = THREE.MathUtils.damp(enemyRoot.rotation.z, 0, 7, dt);
-          }
-
+          enemyRoot.rotation.z = THREE.MathUtils.damp(enemyRoot.rotation.z, state.enemyHp <= 0 ? -1.15 : 0, 5, dt);
           slash.material.opacity = THREE.MathUtils.damp(slash.material.opacity, 0, 12, dt);
           floorGlow.material.opacity = 0.13 + Math.sin(state.time * 2) * 0.035;
           state.shake = Math.max(0, state.shake - dt * 0.7);
-          const shakeX = state.shake ? (Math.random() - 0.5) * state.shake : 0;
-          const shakeY = state.shake ? (Math.random() - 0.5) * state.shake : 0;
-          camera.position.x = THREE.MathUtils.damp(camera.position.x, shakeX, 14, dt);
-          camera.position.y = THREE.MathUtils.damp(camera.position.y, 1.05 + shakeY, 14, dt);
+          camera.position.x = THREE.MathUtils.damp(camera.position.x, state.shake ? (Math.random() - 0.5) * state.shake : 0, 14, dt);
+          camera.position.y = THREE.MathUtils.damp(camera.position.y, 1.05, 14, dt);
           camera.lookAt(target);
-
           if (state.enemyHp <= 0 || state.playerHp <= 0) {
             fightRef.current.running = false;
             setGameOver(true);
+            if (state.enemyHp <= 0) setMessage('K.O.');
+            else setMessage('DEFEATED');
           }
-
           renderer.render(scene, camera);
         };
         fightRef.current.running = true;
         animate();
-
-        return () => {};
       } catch (error) {
         console.error('3D fighting arena failed:', error);
         setFailed(true);
@@ -401,9 +341,9 @@ export default function PortfolioScene() {
       cancelled = true;
       cancelAnimationFrame(raf);
       if (observer) observer.disconnect();
-      window.removeEventListener('keydown', keydown);
-      window.removeEventListener('keyup', keyup);
-      window.removeEventListener('fight-restart', restartEvent);
+      if (keydownHandler) window.removeEventListener('keydown', keydownHandler);
+      if (keyupHandler) window.removeEventListener('keyup', keyupHandler);
+      if (restartHandler) window.removeEventListener('fight-restart', restartHandler);
       if (renderer) {
         renderer.dispose();
         if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
@@ -426,45 +366,14 @@ export default function PortfolioScene() {
       <div ref={mountRef} className="three-canvas" />
       <div className="fight-vignette" />
       <div className="fight-topbar">
-        <div className="fighter-card player-card">
-          <div className="fighter-label">PLAYER 01</div>
-          <strong>AI COMBATANT</strong>
-          <div className="health-track"><span style={{ width: `${playerHealth}%` }} /></div>
-          <small>{Math.max(0, Math.round(playerHealth))} HP</small>
-        </div>
+        <div className="fighter-card player-card"><div className="fighter-label">PLAYER 01</div><strong>AI COMBATANT</strong><div className="health-track"><span style={{ width: `${playerHealth}%` }} /></div><small>{Math.max(0, Math.round(playerHealth))} HP</small></div>
         <div className="fight-round"><span>ROUND</span><strong>{String(round).padStart(2, '0')}</strong><small>TRAINING ARENA</small></div>
-        <div className="fighter-card enemy-card">
-          <div className="fighter-label">OPPONENT</div>
-          <strong>ARENA BOT</strong>
-          <div className="health-track enemy-track"><span style={{ width: `${enemyHealth}%` }} /></div>
-          <small>{Math.max(0, Math.round(enemyHealth))} HP</small>
-        </div>
+        <div className="fighter-card enemy-card"><div className="fighter-label">OPPONENT</div><strong>ARENA BOT</strong><div className="health-track enemy-track"><span style={{ width: `${enemyHealth}%` }} /></div><small>{Math.max(0, Math.round(enemyHealth))} HP</small></div>
       </div>
-
-      <div className="fight-status">
-        <span>COMBAT SYSTEM</span>
-        <strong>{message}</strong>
-        {combo > 1 && <em>{combo} HIT COMBO</em>}
-      </div>
-
-      <div className="fight-controls">
-        <button onClick={() => press('light')}><b>J</b><span>PUNCH</span></button>
-        <button onClick={() => press('heavy')}><b>K</b><span>POWER</span></button>
-        <button onClick={() => press('dash')}><b>L</b><span>DASH</span></button>
-        <button onClick={() => press('block')}><b>↓</b><span>GUARD</span></button>
-      </div>
-
+      <div className="fight-status"><span>COMBAT SYSTEM</span><strong>{message}</strong>{combo > 1 && <em>{combo} HIT COMBO</em>}</div>
+      <div className="fight-controls"><button onClick={() => press('light')}><b>J</b><span>PUNCH</span></button><button onClick={() => press('heavy')}><b>K</b><span>POWER</span></button><button onClick={() => press('dash')}><b>L</b><span>DASH</span></button><button onClick={() => press('block')}><b>↓</b><span>GUARD</span></button></div>
       <div className="fight-help">J / SPACE · PUNCH &nbsp;&nbsp; K · POWER &nbsp;&nbsp; L / SHIFT · DASH &nbsp;&nbsp; ↓ · GUARD</div>
-
-      {gameOver && (
-        <div className="fight-gameover">
-          <span>{enemyHealth <= 0 ? 'VICTORY' : 'DEFEATED'}</span>
-          <strong>{enemyHealth <= 0 ? 'K.O.' : 'FIGHT OVER'}</strong>
-          <small>{enemyHealth <= 0 ? 'ARENA CLEARED' : 'RESET THE ROUND AND FIGHT AGAIN'}</small>
-          <button onClick={() => window.dispatchEvent(new CustomEvent('fight-restart'))}>REMATCH <span>↗</span></button>
-        </div>
-      )}
-
+      {gameOver && <div className="fight-gameover"><span>{enemyHealth <= 0 ? 'VICTORY' : 'DEFEATED'}</span><strong>{enemyHealth <= 0 ? 'K.O.' : 'FIGHT OVER'}</strong><small>{enemyHealth <= 0 ? 'ARENA CLEARED' : 'RESET THE ROUND AND FIGHT AGAIN'}</small><button onClick={() => window.dispatchEvent(new CustomEvent('fight-restart'))}>REMATCH <span>↗</span></button></div>}
       {!loaded && !failed && <div className="scene-loading"><span /> FITTING 3D FIGHTER</div>}
       {failed && <div className="scene-error">3D fighter could not load.</div>}
     </div>
