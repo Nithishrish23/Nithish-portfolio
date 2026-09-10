@@ -13,6 +13,7 @@
   style.textContent = `
     .hero-actions { margin-top: 30px !important; gap: 14px !important; }
     .hero-actions .primary-btn { transform: translateY(2px); }
+    .hero-photo-card { display: none !important; }
 
     /* Dark theme: the technology banner must use the same dark surface as the section. */
     html[data-theme='dark'] .stack-banner {
