@@ -155,6 +155,25 @@ export default function PortfolioScene() {
         strip.position.set(-0.1, -1.76, -2.57);
         stage.add(strip);
 
+        const missionMarkers = MISSIONS.map((mission, index) => {
+          const group = new THREE.Group();
+          group.position.set(mission.x, -1.91, mission.z);
+          const ring = new THREE.Mesh(
+            new THREE.RingGeometry(0.23, 0.29, 32),
+            new THREE.MeshBasicMaterial({ color: index === 1 ? 0x1769ff : 0x4b94e8, transparent: true, opacity: 0.7, side: THREE.DoubleSide }),
+          );
+          ring.rotation.x = -Math.PI / 2;
+          group.add(ring);
+          const core = new THREE.Mesh(
+            new THREE.SphereGeometry(0.045, 12, 8),
+            new THREE.MeshBasicMaterial({ color: 0x72b7ff, transparent: true, opacity: 0.85 }),
+          );
+          core.position.y = 0.03;
+          group.add(core);
+          stage.add(group);
+          return { group, ring, core };
+        });
+
         const modelRoot = new THREE.Group();
         modelRoot.position.set(state.x, -0.18, state.z);
         stage.add(modelRoot);
@@ -255,7 +274,10 @@ export default function PortfolioScene() {
           if (special) play(special, false);
         };
 
-        const travelTo = (mission) => {
+        const onMissionCommand = (event) => {
+          if (!gameModeRef.current) return;
+          const mission = MISSIONS.find((item) => item.id === event.detail);
+          if (!mission) return;
           state.target = { x: mission.x, z: mission.z };
           setActiveMission(mission.id);
           setMessage(`Walking to ${mission.title} · E to interact`);
@@ -274,6 +296,7 @@ export default function PortfolioScene() {
         const onKeyUp = (event) => keys.delete(event.key.toLowerCase());
         window.addEventListener('keydown', onKeyDown);
         window.addEventListener('keyup', onKeyUp);
+        window.addEventListener('portfolio-mission', onMissionCommand);
 
         const resize = () => {
           if (!renderer) return;
@@ -333,10 +356,9 @@ export default function PortfolioScene() {
             state.z = clamp(state.z + state.vz * delta, -0.78, 0.62);
             state.direction = state.vx < -0.02 ? -1 : state.vx > 0.02 ? 1 : state.direction;
 
-            // The avatar's rest pose faces the camera (+Z). Use the actual movement vector
-            // instead of hard-coded left/right angles so forward movement also turns correctly.
-            const movementYaw = Math.atan2(state.vx, state.vz);
-            state.yaw = movementYaw;
+            // The avatar's rest pose faces the camera (+Z). Rotate from the actual
+            // movement vector so left, right, forward and backward all face correctly.
+            state.yaw = Math.atan2(state.vx, state.vz);
             const walk = findClip(/walk|run/i);
             if (walk) play(walk);
           } else {
@@ -344,7 +366,6 @@ export default function PortfolioScene() {
             state.vz = THREE.MathUtils.damp(state.vz, 0, 10, delta);
             const { mission } = nearestMission();
             if (mission?.id === 'projects' && Math.hypot(state.x - mission.x, state.z - mission.z) < 0.75) {
-              // At the computer, turn the character naturally toward the monitor.
               state.yaw = Math.atan2(-1.67 - state.z, -0.18 - state.x);
             }
             const idle = findClip(/idle|stand|breath|casual|relax/i);
@@ -360,6 +381,17 @@ export default function PortfolioScene() {
           avatarShadow.position.z = modelRoot.position.z + 0.18;
           avatarShadow.scale.x = 1.55 + Math.sin(elapsed * 1.1) * 0.012;
 
+          missionMarkers.forEach((marker, index) => {
+            const mission = MISSIONS[index];
+            const dx = state.x - mission.x;
+            const dz = state.z - mission.z;
+            const near = Math.hypot(dx, dz) < 0.75;
+            marker.group.position.y = -1.91 + Math.sin(elapsed * 2 + index) * 0.025;
+            marker.ring.scale.setScalar(near ? 1.22 : 1);
+            marker.ring.material.opacity = near ? 0.95 : 0.55;
+            marker.core.scale.setScalar(near ? 1.5 : 1);
+          });
+
           if (mixer) mixer.update(delta);
 
           const cameraTargetX = state.x * 0.13;
@@ -374,6 +406,7 @@ export default function PortfolioScene() {
         cleanup = () => {
           window.removeEventListener('keydown', onKeyDown);
           window.removeEventListener('keyup', onKeyUp);
+          window.removeEventListener('portfolio-mission', onMissionCommand);
           resizeObserver?.disconnect();
           cancelAnimationFrame(raf);
           mixer?.stopAllAction();
@@ -413,19 +446,8 @@ export default function PortfolioScene() {
 
   const goToMission = (mission) => {
     if (!gameMode) return;
-    const event = new CustomEvent('portfolio-mission', { detail: mission.id });
-    window.dispatchEvent(event);
+    window.dispatchEvent(new CustomEvent('portfolio-mission', { detail: mission.id }));
   };
-
-  useEffect(() => {
-    const onMission = (event) => {
-      // The render loop owns the movement state; this event is intentionally kept local to the canvas.
-      const id = event.detail;
-      setActiveMission(id);
-    };
-    window.addEventListener('portfolio-mission', onMission);
-    return () => window.removeEventListener('portfolio-mission', onMission);
-  }, []);
 
   const allDone = completed.length === MISSIONS.length;
 
