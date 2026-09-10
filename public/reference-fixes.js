@@ -1,9 +1,13 @@
 (() => {
-  // Prevent remote font/CSS requests from blocking the deferred React module.
   document.querySelectorAll('link[rel="stylesheet"]').forEach((link) => {
     link.media = 'print';
     setTimeout(() => { link.media = 'all'; }, 0);
   });
+
+  const fightStyle = document.createElement('link');
+  fightStyle.rel = 'stylesheet';
+  fightStyle.href = '/fight.css';
+  document.head.appendChild(fightStyle);
 
   const TARGET_EMAIL = 'nithishkumar.job@gmail.com';
   const OPENAI_LOGO = '/openai-logo.svg';
@@ -13,28 +17,12 @@
   style.textContent = `
     .hero-actions { margin-top: 30px !important; gap: 14px !important; }
     .hero-actions .primary-btn { transform: translateY(2px); }
-    .hero-photo-card { display: none !important; }
-
-    /* Dark theme: the technology banner must use the same dark surface as the section. */
-    html[data-theme='dark'] .stack-banner {
-      background: #07111f !important;
-      color: #f2f7ff !important;
-      border-color: #203550 !important;
-    }
+    html[data-theme='dark'] .stack-banner { background: #07111f !important; color: #f2f7ff !important; border-color: #203550 !important; }
     html[data-theme='dark'] .stack-banner .section-kicker { color: #6eaaff !important; }
     html[data-theme='dark'] .stack-banner h2 { color: #f1f6ff !important; }
     html[data-theme='dark'] .stack-banner h2 span { color: #5aa2ff !important; }
     html[data-theme='dark'] .stack-banner > p { color: #9db0c8 !important; }
-
-    /* Technology logos are local so they cannot become broken-image placeholders. */
-    .technology-items img[alt='OpenAI logo'],
-    .technology-items img[alt='RAG logo'] {
-      width: 28px !important;
-      height: 28px !important;
-      object-fit: contain !important;
-      display: block !important;
-      margin: 0 !important;
-    }
+    .technology-items img[alt='OpenAI logo'], .technology-items img[alt='RAG logo'] { width: 28px !important; height: 28px !important; object-fit: contain !important; display: block !important; margin: 0 !important; }
   `;
   document.head.appendChild(style);
 
