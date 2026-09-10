@@ -1,0 +1,24 @@
+# Nithish Kumar
+
+AI Engineer & Full Stack Developer based in Chennai, India.
+
+## Focus
+- LLM applications and AI agents
+- RAG and retrieval systems
+- Python, FastAPI, Flask and Django backends
+- React and full-stack product engineering
+- Salesforce API and metadata automation
+- Computer vision and document intelligence
+- Reliable AI with validation, permissions, approvals and auditability
+
+## Portfolio
+https://nithish.mathuratech.com/
+
+## Writing
+https://nithish.mathuratech.com/blog/
+https://nithish.mathuratech.com/blog/ai-agents-production.html
+https://nithish.mathuratech.com/blog/rag-production.html
+https://nithish.mathuratech.com/blog/salesforce-ai-automation.html
+
+## Public profile
+https://github.com/Nithishrish23
