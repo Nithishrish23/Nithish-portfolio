@@ -12,9 +12,15 @@ const NODES = [
 
 export default function PortfolioScene() {
   const mountRef = useRef(null);
+  const activeRef = useRef('build');
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [active, setActive] = useState('build');
+
+  const selectNode = (id) => {
+    activeRef.current = id;
+    setActive(id);
+  };
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -35,31 +41,32 @@ export default function PortfolioScene() {
 
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xeaf4ff);
-        scene.fog = new THREE.Fog(0xeaf4ff, 7, 16);
+        scene.fog = new THREE.Fog(0xeaf4ff, 7, 17);
 
-        const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 60);
-        camera.position.set(0, 0.15, 6.7);
-        camera.lookAt(0, -0.45, -0.7);
+        // Wider, slightly higher camera framing keeps the entire GLB visible, including the face.
+        const camera = new THREE.PerspectiveCamera(27, 1, 0.1, 60);
+        camera.position.set(0, 0.05, 7.6);
+        camera.lookAt(0, -0.48, -0.7);
 
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.12;
+        renderer.toneMappingExposure = 1.1;
         renderer.setClearColor(0xeaf4ff, 1);
         mount.appendChild(renderer.domElement);
 
         scene.add(new THREE.HemisphereLight(0xffffff, 0x5c7894, 2.8));
-        const key = new THREE.DirectionalLight(0xffffff, 4.5);
+        const key = new THREE.DirectionalLight(0xffffff, 4.2);
         key.position.set(-4, 6, 4);
         scene.add(key);
-        const rim = new THREE.DirectionalLight(0x55baff, 5);
+        const rim = new THREE.DirectionalLight(0x55baff, 4.8);
         rim.position.set(4, 3, -3);
         scene.add(rim);
-        const blue = new THREE.PointLight(0x1769ff, 20, 10, 2);
+        const blue = new THREE.PointLight(0x1769ff, 18, 10, 2);
         blue.position.set(-2.4, 1.4, 1.5);
         scene.add(blue);
-        const cyan = new THREE.PointLight(0x58d7ff, 16, 9, 2);
+        const cyan = new THREE.PointLight(0x58d7ff, 14, 9, 2);
         cyan.position.set(2.6, 1.1, -1);
         scene.add(cyan);
 
@@ -95,7 +102,6 @@ export default function PortfolioScene() {
         glow.position.set(0, 0.3, -3.95);
         world.add(glow);
 
-        // Hologram platform surrounding the real GLB avatar.
         const holo = new THREE.Group();
         holo.position.set(0, -0.35, -0.85);
         world.add(holo);
@@ -111,7 +117,7 @@ export default function PortfolioScene() {
         for (let i = 0; i < 12; i += 1) {
           const a = i * Math.PI * 2 / 12;
           const beam = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.009, 0.009, 3.5, 8),
+            new THREE.CylinderGeometry(0.009, 0.009, 3.2, 8),
             new THREE.MeshBasicMaterial({ color: i % 2 ? 0x3b9bff : 0x8ae7ff, transparent: true, opacity: 0.16, depthWrite: false })
           );
           beam.position.set(Math.cos(a) * 1.7, 0.35, Math.sin(a) * 0.65);
@@ -134,7 +140,6 @@ export default function PortfolioScene() {
         shadow.position.set(0, -1.88, -0.7);
         world.add(shadow);
 
-        // Floating data particles.
         const particles = new THREE.Group();
         world.add(particles);
         for (let i = 0; i < 90; i += 1) {
@@ -148,7 +153,6 @@ export default function PortfolioScene() {
           particles.add(p);
         }
 
-        // Minimal futuristic workstation in the background.
         const deskMat = new THREE.MeshStandardMaterial({ color: 0x6c8ca7, roughness: 0.65, metalness: 0.15 });
         const desk = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.09, 0.7), deskMat);
         desk.position.set(0, -0.45, -2.65);
@@ -164,15 +168,14 @@ export default function PortfolioScene() {
         );
         monitor.position.set(0, 0.75, -2.63);
         world.add(monitor);
-        const monitorGlow = new THREE.Mesh(
-          new THREE.PlaneGeometry(1.76, 0.9),
-          new THREE.MeshBasicMaterial({ color: 0x063c68 })
-        );
+        const monitorGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.76, 0.9), new THREE.MeshBasicMaterial({ color: 0x063c68 }));
         monitorGlow.position.set(0, 0.75, -2.58);
         world.add(monitorGlow);
 
+        // The avatar is centered from its actual bounds and scaled conservatively.
+        // Do not rotate individual bones: the GLB's native idle animation already drives the rig.
         avatarRoot = new THREE.Group();
-        avatarRoot.position.set(0, -0.05, 0.15);
+        avatarRoot.position.set(0, -0.50, 0.15);
         world.add(avatarRoot);
 
         const loader = new GLTFLoader();
@@ -200,10 +203,10 @@ export default function PortfolioScene() {
             const box = new THREE.Box3().setFromObject(model);
             const size = box.getSize(new THREE.Vector3());
             const center = box.getCenter(new THREE.Vector3());
-            const targetHeight = 3.35;
+            const targetHeight = 2.82;
             const scale = targetHeight / Math.max(size.y, 0.001);
             model.scale.setScalar(scale);
-            model.position.set(-center.x * scale, -center.y * scale - 0.02, -center.z * scale);
+            model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
             avatarRoot.add(model);
 
             mixer = new THREE.AnimationMixer(model);
@@ -256,13 +259,13 @@ export default function PortfolioScene() {
           particles.rotation.y = time * 0.025;
           glow.material.opacity = 0.12 + Math.sin(time * 1.2) * 0.035;
           nodeVisuals.forEach((visual, index) => {
-            const isActive = NODES[index].id === active;
+            const isActive = NODES[index].id === activeRef.current;
             visual.group.position.y = -0.48 + Math.sin(time * 1.8 + index) * 0.035;
             visual.ring.rotation.z += dt * (isActive ? 0.9 : 0.25);
             visual.ring.material.opacity = isActive ? 0.95 : 0.55;
             visual.core.scale.setScalar(isActive ? 1.35 : 1);
           });
-          if (avatarRoot) avatarRoot.rotation.y = Math.sin(time * 0.35) * 0.06;
+          if (avatarRoot) avatarRoot.rotation.y = Math.sin(time * 0.35) * 0.035;
           renderer.render(scene, camera);
         };
         animate();
@@ -280,7 +283,7 @@ export default function PortfolioScene() {
       renderer?.dispose();
       if (renderer?.domElement?.parentNode === mount) mount.removeChild(renderer.domElement);
     };
-  }, [active]);
+  }, []);
 
   return (
     <div className="command-shell">
@@ -294,7 +297,7 @@ export default function PortfolioScene() {
       </div>
       <div className="node-stack" aria-label="Portfolio focus areas">
         {NODES.map((node) => (
-          <button key={node.id} className={active === node.id ? 'active' : ''} onClick={() => setActive(node.id)}>
+          <button key={node.id} className={active === node.id ? 'active' : ''} onClick={() => selectNode(node.id)}>
             <span>{node.id === 'ai' ? '01' : node.id === 'build' ? '02' : '03'}</span>
             <div><strong>{node.title}</strong><small>{node.sub}</small></div>
             <b>↗</b>
