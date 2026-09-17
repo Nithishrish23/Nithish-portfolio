@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import './command-center.css';
+import './command-360.css';
 
 const MODEL_URL = '/nithish-model.glb';
-const PROFILE_IMAGE = 'https://raw.githubusercontent.com/Nithishrish23/Nithish-portfolio/98f873233766d9efe6688b559262306092e7545d/static/images/1727781988320.jpg';
 
 const NODES = [
   { id: 'ai', title: 'AI CORE', sub: 'LLM · RAG · AGENTS', x: -2.2, z: -0.25 },
@@ -13,6 +13,8 @@ const NODES = [
 export default function PortfolioScene() {
   const mountRef = useRef(null);
   const activeRef = useRef('build');
+  const rotationRef = useRef({ current: 0, target: 0 });
+  const dragRef = useRef({ active: false, x: 0 });
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [active, setActive] = useState('build');
@@ -33,6 +35,35 @@ export default function PortfolioScene() {
     let mixer;
     let avatarRoot;
 
+    const onPointerDown = (event) => {
+      dragRef.current.active = true;
+      dragRef.current.x = event.clientX;
+      mount.setPointerCapture?.(event.pointerId);
+      mount.classList.add('is-dragging');
+    };
+
+    const onPointerMove = (event) => {
+      if (!dragRef.current.active) return;
+      const dx = event.clientX - dragRef.current.x;
+      dragRef.current.x = event.clientX;
+      rotationRef.current.target += dx * 0.012;
+    };
+
+    const stopDrag = (event) => {
+      dragRef.current.active = false;
+      mount.releasePointerCapture?.(event.pointerId);
+      mount.classList.remove('is-dragging');
+    };
+
+    mount.addEventListener('pointerdown', onPointerDown);
+    mount.addEventListener('pointermove', onPointerMove);
+    mount.addEventListener('pointerup', stopDrag);
+    mount.addEventListener('pointercancel', stopDrag);
+    mount.addEventListener('lostpointercapture', () => {
+      dragRef.current.active = false;
+      mount.classList.remove('is-dragging');
+    });
+
     const start = async () => {
       try {
         const THREE = await import('three');
@@ -43,7 +74,6 @@ export default function PortfolioScene() {
         scene.background = new THREE.Color(0xeaf4ff);
         scene.fog = new THREE.Fog(0xeaf4ff, 7, 17);
 
-        // Wider, slightly higher camera framing keeps the entire GLB visible, including the face.
         const camera = new THREE.PerspectiveCamera(27, 1, 0.1, 60);
         camera.position.set(0, 0.05, 7.6);
         camera.lookAt(0, -0.48, -0.7);
@@ -172,8 +202,7 @@ export default function PortfolioScene() {
         monitorGlow.position.set(0, 0.75, -2.58);
         world.add(monitorGlow);
 
-        // The avatar is centered from its actual bounds and scaled conservatively.
-        // Do not rotate individual bones: the GLB's native idle animation already drives the rig.
+        // Center the real GLB from its bounds and keep its native animation intact.
         avatarRoot = new THREE.Group();
         avatarRoot.position.set(0, -0.50, 0.15);
         world.add(avatarRoot);
@@ -251,6 +280,14 @@ export default function PortfolioScene() {
           const dt = Math.min(clock.getDelta(), 0.033);
           const time = clock.elapsedTime;
           if (mixer) mixer.update(dt);
+
+          const rotation = rotationRef.current;
+          if (!dragRef.current.active) {
+            rotation.target += dt * 0.12;
+          }
+          rotation.current += (rotation.target - rotation.current) * Math.min(dt * 7, 1);
+          if (avatarRoot) avatarRoot.rotation.y = rotation.current;
+
           holo.rotation.y += dt * 0.08;
           holo.children.forEach((child) => {
             if (child.userData.speed) child.rotation.z += child.userData.speed * dt;
@@ -265,7 +302,6 @@ export default function PortfolioScene() {
             visual.ring.material.opacity = isActive ? 0.95 : 0.55;
             visual.core.scale.setScalar(isActive ? 1.35 : 1);
           });
-          if (avatarRoot) avatarRoot.rotation.y = Math.sin(time * 0.35) * 0.035;
           renderer.render(scene, camera);
         };
         animate();
@@ -282,19 +318,23 @@ export default function PortfolioScene() {
       resizeObserver?.disconnect();
       renderer?.dispose();
       if (renderer?.domElement?.parentNode === mount) mount.removeChild(renderer.domElement);
+      mount.removeEventListener('pointerdown', onPointerDown);
+      mount.removeEventListener('pointermove', onPointerMove);
+      mount.removeEventListener('pointerup', stopDrag);
+      mount.removeEventListener('pointercancel', stopDrag);
+      mount.classList.remove('is-dragging');
     };
   }, []);
 
+  const resetRotation = () => {
+    rotationRef.current.target = 0;
+  };
+
   return (
     <div className="command-shell">
-      <div ref={mountRef} className="three-canvas" aria-label="Interactive 3D AI engineering workspace" />
+      <div ref={mountRef} className="three-canvas avatar-360-canvas" aria-label="Interactive 360 degree 3D avatar. Drag left or right to rotate." />
       <div className="holo-vignette" />
       <div className="holo-lines" />
-      <div className="command-title"><span>// NITHISH KUMAR</span><strong>AI ENGINEERING<br /><em>COMMAND CENTER</em></strong></div>
-      <div className="command-avatar-card">
-        <img src={PROFILE_IMAGE} alt="Nithish Kumar" />
-        <div><small>AI ENGINEER · FULL STACK</small><b>{loaded ? '3D AVATAR ONLINE' : failed ? '3D FALLBACK ACTIVE' : 'LOADING 3D AVATAR'}</b></div>
-      </div>
       <div className="node-stack" aria-label="Portfolio focus areas">
         {NODES.map((node) => (
           <button key={node.id} className={active === node.id ? 'active' : ''} onClick={() => selectNode(node.id)}>
@@ -304,7 +344,11 @@ export default function PortfolioScene() {
           </button>
         ))}
       </div>
-      <div className="command-caption"><span>BUILD · AUTOMATE · INNOVATE</span><small>REAL GLB · NATIVE IDLE · HOLOGRAPHIC FIELD</small></div>
+      <div className="avatar-360-controls" aria-label="360 degree avatar controls">
+        <button type="button" onClick={resetRotation} aria-label="Reset avatar rotation">↺</button>
+        <span><strong>360°</strong><small>{loaded ? 'DRAG TO ROTATE' : failed ? '3D FALLBACK' : 'LOADING AVATAR'}</small></span>
+        <span className="rotation-dot" aria-hidden="true" />
+      </div>
     </div>
   );
 }
