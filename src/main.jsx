@@ -6,7 +6,7 @@ import './styles.css';
 import './reference-theme.css';
 
 const PROFILE_IMAGE = 'https://raw.githubusercontent.com/Nithishrish23/Nithish-portfolio/98f873233766d9efe6688b559262306092e7545d/static/images/1727781988320.jpg';
-const EMAIL = 'nithishkumar140700@gmail.com';
+const EMAIL = 'nithishkumar.job@gmail.com';
 const RESUME_URL = 'https://raw.githubusercontent.com/Nithishrish23/Nithish-portfolio/main/static/files/nithishresume(1).pdf';
 
 const BRAND_ICONS = {
@@ -37,9 +37,9 @@ const BRAND_ICONS = {
   Docker: 'https://cdn.simpleicons.org/docker',
   Git: 'https://cdn.simpleicons.org/git',
   Linux: 'https://cdn.simpleicons.org/linux',
-  AWS: 'https://cdn.simpleicons.org/amazonaws',
+  AWS: 'https://cdn.simpleicons.org/amazonaws/FF9900',
   Vercel: 'https://cdn.simpleicons.org/vercel',
-  Azure: 'https://cdn.simpleicons.org/microsoftazure',
+  Azure: 'https://cdn.simpleicons.org/microsoftazure/0078D4',
   GitHub: 'https://cdn.simpleicons.org/github',
   'CI/CD': 'https://cdn.simpleicons.org/githubactions',
 };
