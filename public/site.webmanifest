@@ -1,0 +1,17 @@
+{
+  "name": "Nithish Kumar — AI Engineer & Full Stack Developer",
+  "short_name": "Nithish AI",
+  "description": "Nithish Kumar's AI engineering and full-stack developer portfolio.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7faff",
+  "theme_color": "#1769ff",
+  "orientation": "any",
+  "lang": "en-IN",
+  "icons": [
+    { "src": "/favicon-48.png", "sizes": "48x48", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

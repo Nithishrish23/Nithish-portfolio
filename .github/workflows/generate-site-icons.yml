@@ -1,0 +1,41 @@
+name: Generate site icons
+
+on:
+  push:
+    branches: [refactor/portfolio-reference-responsive]
+    paths:
+      - 'public/favicon.svg'
+      - '.github/workflows/generate-site-icons.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  icons:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Convert SVG to PNG icons
+        run: |
+          npm install --no-save sharp@0.33.5
+          node - <<'NODE'
+          const sharp = require('sharp');
+          const fs = require('fs');
+          const input = 'public/favicon.svg';
+          const sizes = [[48,'favicon-48.png'],[180,'apple-touch-icon.png'],[192,'icon-192.png'],[512,'icon-512.png']];
+          (async () => {
+            for (const [size, name] of sizes) {
+              await sharp(input).resize(size, size).png().toFile(`public/${name}`);
+            }
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - name: Commit generated icons
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/*.png
+          git diff --cached --quiet || git commit -m 'chore: generate png site icons'
+          git push

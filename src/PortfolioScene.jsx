@@ -1,177 +1,354 @@
 import { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import './command-center.css';
+import './command-360.css';
 
 const MODEL_URL = '/nithish-model.glb';
 
+const NODES = [
+  { id: 'ai', title: 'AI CORE', sub: 'LLM · RAG · AGENTS', x: -2.2, z: -0.25 },
+  { id: 'build', title: 'BUILD LAB', sub: 'PRODUCTS · VISION', x: 0, z: -0.75 },
+  { id: 'cloud', title: 'CLOUD GRID', sub: 'AWS · AZURE · CI/CD', x: 2.2, z: -0.25 },
+];
+
 export default function PortfolioScene() {
   const mountRef = useRef(null);
+  const activeRef = useRef('build');
+  const rotationRef = useRef({ current: 0, target: 0 });
+  const dragRef = useRef({ active: false, x: 0 });
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [active, setActive] = useState('build');
+
+  const selectNode = (id) => {
+    activeRef.current = id;
+    setActive(id);
+  };
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return undefined;
 
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x080b0f, 0.045);
+    let cancelled = false;
+    let frame = 0;
+    let renderer;
+    let resizeObserver;
+    let mixer;
+    let avatarRoot;
 
-    const camera = new THREE.PerspectiveCamera(31, 1, 0.1, 100);
-    camera.position.set(0.05, 1.25, 6.4);
+    const onPointerDown = (event) => {
+      dragRef.current.active = true;
+      dragRef.current.x = event.clientX;
+      mount.setPointerCapture?.(event.pointerId);
+      mount.classList.add('is-dragging');
+    };
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(mount.clientWidth, mount.clientHeight);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
-    mount.appendChild(renderer.domElement);
-
-    scene.add(new THREE.HemisphereLight(0xb8c7d8, 0x080b0f, 1.55));
-
-    const key = new THREE.DirectionalLight(0xe8f0f6, 3.1);
-    key.position.set(3.5, 5.5, 4.5);
-    scene.add(key);
-
-    const greenRim = new THREE.PointLight(0x39d353, 45, 11, 2);
-    greenRim.position.set(-3.2, 2.6, -2.2);
-    scene.add(greenRim);
-
-    const blueRim = new THREE.PointLight(0x58a6ff, 32, 10, 2);
-    blueRim.position.set(3.4, 1.7, -2.8);
-    scene.add(blueRim);
-
-    const group = new THREE.Group();
-    scene.add(group);
-
-    // Developer-style orbital geometry: thin technical rings instead of a sci-fi halo.
-    const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x39d353, transparent: true, opacity: 0.34 });
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.72, 0.004, 8, 180), ringMaterial);
-    ring.rotation.x = Math.PI / 2.25;
-    ring.position.y = 0.05;
-    group.add(ring);
-
-    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(2.28, 0.0025, 8, 180), new THREE.MeshBasicMaterial({ color: 0x58a6ff, transparent: true, opacity: 0.2 }));
-    ring2.rotation.x = Math.PI / 2.08;
-    ring2.rotation.z = 0.52;
-    ring2.position.y = -0.18;
-    group.add(ring2);
-
-    const grid = new THREE.GridHelper(6.5, 26, 0x26313b, 0x182129);
-    grid.position.y = -2.02;
-    grid.material.transparent = true;
-    grid.material.opacity = 0.28;
-    group.add(grid);
-
-    const particleGeometry = new THREE.BufferGeometry();
-    const particleCount = 420;
-    const particlePositions = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount; i += 1) {
-      const radius = 2.5 + Math.random() * 4.5;
-      const angle = Math.random() * Math.PI * 2;
-      particlePositions[i * 3] = Math.cos(angle) * radius;
-      particlePositions[i * 3 + 1] = (Math.random() - 0.45) * 4.8;
-      particlePositions[i * 3 + 2] = Math.sin(angle) * radius - 1.2;
-    }
-    particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-    const particles = new THREE.Points(particleGeometry, new THREE.PointsMaterial({ color: 0x7ee787, size: 0.014, transparent: true, opacity: 0.48, sizeAttenuation: true }));
-    scene.add(particles);
-
-    const modelRoot = new THREE.Group();
-    modelRoot.position.y = -2.25;
-    modelRoot.scale.setScalar(0.001);
-    group.add(modelRoot);
-
-    let model;
-    const loader = new GLTFLoader();
-    loader.load(
-      MODEL_URL,
-      (gltf) => {
-        model = gltf.scene;
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
-        const maxSize = Math.max(size.x, size.y, size.z) || 1;
-        const scale = 4.15 / maxSize;
-        model.scale.setScalar(scale);
-        model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
-        model.traverse((node) => {
-          if (node.isMesh) {
-            node.castShadow = false;
-            node.receiveShadow = false;
-          }
-        });
-        modelRoot.add(model);
-        setLoaded(true);
-      },
-      undefined,
-      () => setFailed(true)
-    );
-
-    let targetX = 0;
-    let targetY = 0;
     const onPointerMove = (event) => {
-      const rect = mount.getBoundingClientRect();
-      targetX = ((event.clientX - rect.left) / rect.width - 0.5) * 0.18;
-      targetY = ((event.clientY - rect.top) / rect.height - 0.5) * 0.11;
+      if (!dragRef.current.active) return;
+      const dx = event.clientX - dragRef.current.x;
+      dragRef.current.x = event.clientX;
+      rotationRef.current.target += dx * 0.012;
     };
+
+    const stopDrag = (event) => {
+      dragRef.current.active = false;
+      mount.releasePointerCapture?.(event.pointerId);
+      mount.classList.remove('is-dragging');
+    };
+
+    mount.addEventListener('pointerdown', onPointerDown);
     mount.addEventListener('pointermove', onPointerMove);
+    mount.addEventListener('pointerup', stopDrag);
+    mount.addEventListener('pointercancel', stopDrag);
+    mount.addEventListener('lostpointercapture', () => {
+      dragRef.current.active = false;
+      mount.classList.remove('is-dragging');
+    });
 
-    const resize = () => {
-      const width = mount.clientWidth || 1;
-      const height = mount.clientHeight || 1;
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
+    const start = async () => {
+      try {
+        const THREE = await import('three');
+        const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+        if (cancelled) return;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xeaf4ff);
+        scene.fog = new THREE.Fog(0xeaf4ff, 7, 17);
+
+        const camera = new THREE.PerspectiveCamera(27, 1, 0.1, 60);
+        camera.position.set(0, 0.05, 7.6);
+        camera.lookAt(0, -0.48, -0.7);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+        renderer.setClearColor(0xeaf4ff, 1);
+        mount.appendChild(renderer.domElement);
+
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x5c7894, 2.8));
+        const key = new THREE.DirectionalLight(0xffffff, 4.2);
+        key.position.set(-4, 6, 4);
+        scene.add(key);
+        const rim = new THREE.DirectionalLight(0x55baff, 4.8);
+        rim.position.set(4, 3, -3);
+        scene.add(rim);
+        const blue = new THREE.PointLight(0x1769ff, 18, 10, 2);
+        blue.position.set(-2.4, 1.4, 1.5);
+        scene.add(blue);
+        const cyan = new THREE.PointLight(0x58d7ff, 14, 9, 2);
+        cyan.position.set(2.6, 1.1, -1);
+        scene.add(cyan);
+
+        const world = new THREE.Group();
+        scene.add(world);
+
+        const floor = new THREE.Mesh(
+          new THREE.CircleGeometry(5.5, 80),
+          new THREE.MeshStandardMaterial({ color: 0xd8e8f5, roughness: 0.92 })
+        );
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = -1.9;
+        world.add(floor);
+
+        const grid = new THREE.GridHelper(11, 44, 0x348be0, 0x9ab9d4);
+        grid.position.y = -1.88;
+        grid.material.transparent = true;
+        grid.material.opacity = 0.22;
+        world.add(grid);
+
+        const wall = new THREE.Mesh(
+          new THREE.PlaneGeometry(15, 8),
+          new THREE.MeshBasicMaterial({ color: 0xf5faff })
+        );
+        wall.position.set(0, 1.15, -4.1);
+        world.add(wall);
+
+        const glow = new THREE.Mesh(
+          new THREE.CircleGeometry(3.5, 64),
+          new THREE.MeshBasicMaterial({ color: 0x8ed7ff, transparent: true, opacity: 0.17, depthWrite: false })
+        );
+        glow.scale.set(1.55, 0.8, 1);
+        glow.position.set(0, 0.3, -3.95);
+        world.add(glow);
+
+        const holo = new THREE.Group();
+        holo.position.set(0, -0.35, -0.85);
+        world.add(holo);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x2388ff, transparent: true, opacity: 0.62, depthWrite: false });
+        const cyanMat = new THREE.MeshBasicMaterial({ color: 0x69dcff, transparent: true, opacity: 0.35, depthWrite: false });
+        [0.85, 1.25, 1.8, 2.35].forEach((radius, i) => {
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, i === 0 ? 0.028 : 0.012, 8, 128), i % 2 ? cyanMat.clone() : ringMat.clone());
+          ring.rotation.x = Math.PI / 2;
+          ring.userData.speed = (i % 2 ? -1 : 1) * (0.08 + i * 0.025);
+          holo.add(ring);
+        });
+
+        for (let i = 0; i < 12; i += 1) {
+          const a = i * Math.PI * 2 / 12;
+          const beam = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.009, 0.009, 3.2, 8),
+            new THREE.MeshBasicMaterial({ color: i % 2 ? 0x3b9bff : 0x8ae7ff, transparent: true, opacity: 0.16, depthWrite: false })
+          );
+          beam.position.set(Math.cos(a) * 1.7, 0.35, Math.sin(a) * 0.65);
+          holo.add(beam);
+        }
+
+        const scan = new THREE.Mesh(
+          new THREE.PlaneGeometry(3.5, 0.018),
+          new THREE.MeshBasicMaterial({ color: 0x62dcff, transparent: true, opacity: 0.65, depthWrite: false })
+        );
+        scan.position.y = 1.25;
+        holo.add(scan);
+
+        const shadow = new THREE.Mesh(
+          new THREE.CircleGeometry(0.82, 48),
+          new THREE.MeshBasicMaterial({ color: 0x1b4b76, transparent: true, opacity: 0.16, depthWrite: false })
+        );
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.scale.set(1.55, 0.58, 1);
+        shadow.position.set(0, -1.88, -0.7);
+        world.add(shadow);
+
+        const particles = new THREE.Group();
+        world.add(particles);
+        for (let i = 0; i < 90; i += 1) {
+          const p = new THREE.Mesh(
+            new THREE.SphereGeometry(0.012 + (i % 4) * 0.005, 7, 5),
+            new THREE.MeshBasicMaterial({ color: i % 3 ? 0x4fa8ff : 0x9cecff, transparent: true, opacity: 0.25 + (i % 4) * 0.08 })
+          );
+          const a = i * 2.399;
+          const radius = 2.0 + (i % 10) * 0.27;
+          p.position.set(Math.cos(a) * radius, -1.45 + (i % 14) * 0.25, -0.8 + Math.sin(a) * 1.15);
+          particles.add(p);
+        }
+
+        const deskMat = new THREE.MeshStandardMaterial({ color: 0x6c8ca7, roughness: 0.65, metalness: 0.15 });
+        const desk = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.09, 0.7), deskMat);
+        desk.position.set(0, -0.45, -2.65);
+        world.add(desk);
+        [-1.7, 1.7].forEach((x) => {
+          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.35, 0.08), deskMat);
+          leg.position.set(x, -1.1, -2.65);
+          world.add(leg);
+        });
+        const monitor = new THREE.Mesh(
+          new THREE.BoxGeometry(2.05, 1.18, 0.08),
+          new THREE.MeshStandardMaterial({ color: 0x09182a, roughness: 0.35, metalness: 0.4 })
+        );
+        monitor.position.set(0, 0.75, -2.63);
+        world.add(monitor);
+        const monitorGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.76, 0.9), new THREE.MeshBasicMaterial({ color: 0x063c68 }));
+        monitorGlow.position.set(0, 0.75, -2.58);
+        world.add(monitorGlow);
+
+        // Center the real GLB from its bounds and keep its native animation intact.
+        avatarRoot = new THREE.Group();
+        avatarRoot.position.set(0, -0.50, 0.15);
+        world.add(avatarRoot);
+
+        const loader = new GLTFLoader();
+        loader.load(
+          MODEL_URL,
+          (gltf) => {
+            if (cancelled) return;
+            const model = gltf.scene;
+            model.visible = true;
+            model.traverse((node) => {
+              if (!node.isMesh) return;
+              node.visible = true;
+              node.frustumCulled = false;
+              node.castShadow = false;
+              node.receiveShadow = false;
+              if (node.material) {
+                const materials = Array.isArray(node.material) ? node.material : [node.material];
+                materials.forEach((material) => {
+                  material.needsUpdate = true;
+                  if ('roughness' in material) material.roughness = Math.min(material.roughness, 0.8);
+                });
+              }
+            });
+
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            const targetHeight = 2.82;
+            const scale = targetHeight / Math.max(size.y, 0.001);
+            model.scale.setScalar(scale);
+            model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+            avatarRoot.add(model);
+
+            mixer = new THREE.AnimationMixer(model);
+            const idle = gltf.animations.find((clip) => /idle|stand|breath|casual|relax/i.test(clip.name)) || gltf.animations[0];
+            if (idle) mixer.clipAction(idle).setLoop(THREE.LoopRepeat, Infinity).play();
+            setLoaded(true);
+          },
+          undefined,
+          (error) => {
+            console.error('GLB avatar failed to load', error);
+            setFailed(true);
+          }
+        );
+
+        const nodeVisuals = NODES.map((node) => {
+          const group = new THREE.Group();
+          group.position.set(node.x, -0.48, node.z);
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.014, 8, 48), ringMat.clone());
+          ring.rotation.x = Math.PI / 2;
+          group.add(ring);
+          const core = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 12), new THREE.MeshBasicMaterial({ color: 0x9be8ff }));
+          group.add(core);
+          world.add(group);
+          return { group, ring, core };
+        });
+
+        const resize = () => {
+          const width = Math.max(mount.clientWidth, 1);
+          const height = Math.max(mount.clientHeight, 1);
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+          renderer.setSize(width, height, false);
+        };
+        resizeObserver = new ResizeObserver(resize);
+        resizeObserver.observe(mount);
+        resize();
+
+        const clock = new THREE.Clock();
+        const animate = () => {
+          if (cancelled) return;
+          frame = requestAnimationFrame(animate);
+          const dt = Math.min(clock.getDelta(), 0.033);
+          const time = clock.elapsedTime;
+          if (mixer) mixer.update(dt);
+
+          const rotation = rotationRef.current;
+          if (!dragRef.current.active) {
+            rotation.target += dt * 0.12;
+          }
+          rotation.current += (rotation.target - rotation.current) * Math.min(dt * 7, 1);
+          if (avatarRoot) avatarRoot.rotation.y = rotation.current;
+
+          holo.rotation.y += dt * 0.08;
+          holo.children.forEach((child) => {
+            if (child.userData.speed) child.rotation.z += child.userData.speed * dt;
+          });
+          scan.position.y = -0.35 + ((Math.sin(time * 1.5) + 1) / 2) * 2.8;
+          particles.rotation.y = time * 0.025;
+          glow.material.opacity = 0.12 + Math.sin(time * 1.2) * 0.035;
+          nodeVisuals.forEach((visual, index) => {
+            const isActive = NODES[index].id === activeRef.current;
+            visual.group.position.y = -0.48 + Math.sin(time * 1.8 + index) * 0.035;
+            visual.ring.rotation.z += dt * (isActive ? 0.9 : 0.25);
+            visual.ring.material.opacity = isActive ? 0.95 : 0.55;
+            visual.core.scale.setScalar(isActive ? 1.35 : 1);
+          });
+          renderer.render(scene, camera);
+        };
+        animate();
+      } catch (error) {
+        console.error('3D scene failed to initialize', error);
+        setFailed(true);
+      }
     };
-    const resizeObserver = new ResizeObserver(resize);
-    resizeObserver.observe(mount);
 
-    const clock = new THREE.Clock();
-    let raf = 0;
-    let elapsed = 0;
-    const animate = () => {
-      raf = requestAnimationFrame(animate);
-      const delta = Math.min(clock.getDelta(), 0.05);
-      elapsed += delta;
-      const intro = Math.min(elapsed / 2.15, 1);
-      const eased = 1 - Math.pow(1 - intro, 4);
-      modelRoot.position.y = THREE.MathUtils.lerp(-2.25, 0, eased);
-      modelRoot.scale.setScalar(THREE.MathUtils.lerp(0.001, 1, eased));
-      if (model) model.rotation.y += delta * 0.14;
-      ring.rotation.z += delta * 0.09;
-      ring2.rotation.z -= delta * 0.05;
-      particles.rotation.y += delta * 0.008;
-      group.rotation.y = THREE.MathUtils.lerp(group.rotation.y, targetX, 0.04);
-      group.rotation.x = THREE.MathUtils.lerp(group.rotation.x, targetY, 0.04);
-      camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetX * 0.55, 0.03);
-      camera.position.y = THREE.MathUtils.lerp(camera.position.y, 1.25 - targetY * 0.35, 0.03);
-      renderer.render(scene, camera);
-    };
-    animate();
-
+    start();
     return () => {
-      cancelAnimationFrame(raf);
-      resizeObserver.disconnect();
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      renderer?.dispose();
+      if (renderer?.domElement?.parentNode === mount) mount.removeChild(renderer.domElement);
+      mount.removeEventListener('pointerdown', onPointerDown);
       mount.removeEventListener('pointermove', onPointerMove);
-      renderer.dispose();
-      particleGeometry.dispose();
-      ring.geometry.dispose();
-      ring.material.dispose();
-      ring2.geometry.dispose();
-      ring2.material.dispose();
-      grid.geometry.dispose();
-      grid.material.dispose();
-      mount.removeChild(renderer.domElement);
+      mount.removeEventListener('pointerup', stopDrag);
+      mount.removeEventListener('pointercancel', stopDrag);
+      mount.classList.remove('is-dragging');
     };
   }, []);
 
+  const resetRotation = () => {
+    rotationRef.current.target = 0;
+  };
+
   return (
-    <div className="scene-shell" aria-label="Interactive 3D portrait">
-      <div ref={mountRef} className="three-canvas" />
-      <div className="scene-glow" />
-      <div className="scene-label scene-label-top"><span />THREE.JS / GLB / INTERACTIVE</div>
-      <div className="scene-label scene-label-bottom">{failed ? 'MODEL MISSING · public/nithish-model.glb' : loaded ? 'MODEL ONLINE · 60 FPS TARGET' : 'LOADING GLB ASSET…'}</div>
+    <div className="command-shell">
+      <div ref={mountRef} className="three-canvas avatar-360-canvas" aria-label="Interactive 360 degree 3D avatar. Drag left or right to rotate." />
+      <div className="holo-vignette" />
+      <div className="holo-lines" />
+      <div className="node-stack" aria-label="Portfolio focus areas">
+        {NODES.map((node) => (
+          <button key={node.id} className={active === node.id ? 'active' : ''} onClick={() => selectNode(node.id)}>
+            <span>{node.id === 'ai' ? '01' : node.id === 'build' ? '02' : '03'}</span>
+            <div><strong>{node.title}</strong><small>{node.sub}</small></div>
+            <b>↗</b>
+          </button>
+        ))}
+      </div>
+      <div className="avatar-360-controls" aria-label="360 degree avatar controls">
+        <button type="button" onClick={resetRotation} aria-label="Reset avatar rotation">↺</button>
+        <span><strong>360°</strong><small>{loaded ? 'DRAG TO ROTATE' : failed ? '3D FALLBACK' : 'LOADING AVATAR'}</small></span>
+        <span className="rotation-dot" aria-hidden="true" />
+      </div>
     </div>
   );
 }
