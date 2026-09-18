@@ -4,351 +4,42 @@ import './command-360.css';
 
 const MODEL_URL = '/nithish-model.glb';
 
-const NODES = [
-  { id: 'ai', title: 'AI CORE', sub: 'LLM · RAG · AGENTS', x: -2.2, z: -0.25 },
-  { id: 'build', title: 'BUILD LAB', sub: 'PRODUCTS · VISION', x: 0, z: -0.75 },
-  { id: 'cloud', title: 'CLOUD GRID', sub: 'AWS · AZURE · CI/CD', x: 2.2, z: -0.25 },
-];
-
-export default function PortfolioScene() {
-  const mountRef = useRef(null);
-  const activeRef = useRef('build');
-  const rotationRef = useRef({ current: 0, target: 0 });
-  const dragRef = useRef({ active: false, x: 0 });
-  const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [active, setActive] = useState('build');
-
-  const selectNode = (id) => {
-    activeRef.current = id;
-    setActive(id);
-  };
-
-  useEffect(() => {
-    const mount = mountRef.current;
-    if (!mount) return undefined;
-
-    let cancelled = false;
-    let frame = 0;
-    let renderer;
-    let resizeObserver;
-    let mixer;
-    let avatarRoot;
-
-    const onPointerDown = (event) => {
-      dragRef.current.active = true;
-      dragRef.current.x = event.clientX;
-      mount.setPointerCapture?.(event.pointerId);
-      mount.classList.add('is-dragging');
-    };
-
-    const onPointerMove = (event) => {
-      if (!dragRef.current.active) return;
-      const dx = event.clientX - dragRef.current.x;
-      dragRef.current.x = event.clientX;
-      rotationRef.current.target += dx * 0.012;
-    };
-
-    const stopDrag = (event) => {
-      dragRef.current.active = false;
-      mount.releasePointerCapture?.(event.pointerId);
-      mount.classList.remove('is-dragging');
-    };
-
-    mount.addEventListener('pointerdown', onPointerDown);
-    mount.addEventListener('pointermove', onPointerMove);
-    mount.addEventListener('pointerup', stopDrag);
-    mount.addEventListener('pointercancel', stopDrag);
-    mount.addEventListener('lostpointercapture', () => {
-      dragRef.current.active = false;
-      mount.classList.remove('is-dragging');
-    });
-
-    const start = async () => {
-      try {
-        const THREE = await import('three');
-        const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-        if (cancelled) return;
-
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xeaf4ff);
-        scene.fog = new THREE.Fog(0xeaf4ff, 7, 17);
-
-        const camera = new THREE.PerspectiveCamera(27, 1, 0.1, 60);
-        camera.position.set(0, 0.05, 7.6);
-        camera.lookAt(0, -0.48, -0.7);
-
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.1;
-        renderer.setClearColor(0xeaf4ff, 1);
-        mount.appendChild(renderer.domElement);
-
-        scene.add(new THREE.HemisphereLight(0xffffff, 0x5c7894, 2.8));
-        const key = new THREE.DirectionalLight(0xffffff, 4.2);
-        key.position.set(-4, 6, 4);
-        scene.add(key);
-        const rim = new THREE.DirectionalLight(0x55baff, 4.8);
-        rim.position.set(4, 3, -3);
-        scene.add(rim);
-        const blue = new THREE.PointLight(0x1769ff, 18, 10, 2);
-        blue.position.set(-2.4, 1.4, 1.5);
-        scene.add(blue);
-        const cyan = new THREE.PointLight(0x58d7ff, 14, 9, 2);
-        cyan.position.set(2.6, 1.1, -1);
-        scene.add(cyan);
-
-        const world = new THREE.Group();
-        scene.add(world);
-
-        const floor = new THREE.Mesh(
-          new THREE.CircleGeometry(5.5, 80),
-          new THREE.MeshStandardMaterial({ color: 0xd8e8f5, roughness: 0.92 })
-        );
-        floor.rotation.x = -Math.PI / 2;
-        floor.position.y = -1.9;
-        world.add(floor);
-
-        const grid = new THREE.GridHelper(11, 44, 0x348be0, 0x9ab9d4);
-        grid.position.y = -1.88;
-        grid.material.transparent = true;
-        grid.material.opacity = 0.22;
-        world.add(grid);
-
-        const wall = new THREE.Mesh(
-          new THREE.PlaneGeometry(15, 8),
-          new THREE.MeshBasicMaterial({ color: 0xf5faff })
-        );
-        wall.position.set(0, 1.15, -4.1);
-        world.add(wall);
-
-        const glow = new THREE.Mesh(
-          new THREE.CircleGeometry(3.5, 64),
-          new THREE.MeshBasicMaterial({ color: 0x8ed7ff, transparent: true, opacity: 0.17, depthWrite: false })
-        );
-        glow.scale.set(1.55, 0.8, 1);
-        glow.position.set(0, 0.3, -3.95);
-        world.add(glow);
-
-        const holo = new THREE.Group();
-        holo.position.set(0, -0.35, -0.85);
-        world.add(holo);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0x2388ff, transparent: true, opacity: 0.62, depthWrite: false });
-        const cyanMat = new THREE.MeshBasicMaterial({ color: 0x69dcff, transparent: true, opacity: 0.35, depthWrite: false });
-        [0.85, 1.25, 1.8, 2.35].forEach((radius, i) => {
-          const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, i === 0 ? 0.028 : 0.012, 8, 128), i % 2 ? cyanMat.clone() : ringMat.clone());
-          ring.rotation.x = Math.PI / 2;
-          ring.userData.speed = (i % 2 ? -1 : 1) * (0.08 + i * 0.025);
-          holo.add(ring);
-        });
-
-        for (let i = 0; i < 12; i += 1) {
-          const a = i * Math.PI * 2 / 12;
-          const beam = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.009, 0.009, 3.2, 8),
-            new THREE.MeshBasicMaterial({ color: i % 2 ? 0x3b9bff : 0x8ae7ff, transparent: true, opacity: 0.16, depthWrite: false })
-          );
-          beam.position.set(Math.cos(a) * 1.7, 0.35, Math.sin(a) * 0.65);
-          holo.add(beam);
-        }
-
-        const scan = new THREE.Mesh(
-          new THREE.PlaneGeometry(3.5, 0.018),
-          new THREE.MeshBasicMaterial({ color: 0x62dcff, transparent: true, opacity: 0.65, depthWrite: false })
-        );
-        scan.position.y = 1.25;
-        holo.add(scan);
-
-        const shadow = new THREE.Mesh(
-          new THREE.CircleGeometry(0.82, 48),
-          new THREE.MeshBasicMaterial({ color: 0x1b4b76, transparent: true, opacity: 0.16, depthWrite: false })
-        );
-        shadow.rotation.x = -Math.PI / 2;
-        shadow.scale.set(1.55, 0.58, 1);
-        shadow.position.set(0, -1.88, -0.7);
-        world.add(shadow);
-
-        const particles = new THREE.Group();
-        world.add(particles);
-        for (let i = 0; i < 90; i += 1) {
-          const p = new THREE.Mesh(
-            new THREE.SphereGeometry(0.012 + (i % 4) * 0.005, 7, 5),
-            new THREE.MeshBasicMaterial({ color: i % 3 ? 0x4fa8ff : 0x9cecff, transparent: true, opacity: 0.25 + (i % 4) * 0.08 })
-          );
-          const a = i * 2.399;
-          const radius = 2.0 + (i % 10) * 0.27;
-          p.position.set(Math.cos(a) * radius, -1.45 + (i % 14) * 0.25, -0.8 + Math.sin(a) * 1.15);
-          particles.add(p);
-        }
-
-        const deskMat = new THREE.MeshStandardMaterial({ color: 0x6c8ca7, roughness: 0.65, metalness: 0.15 });
-        const desk = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.09, 0.7), deskMat);
-        desk.position.set(0, -0.45, -2.65);
-        world.add(desk);
-        [-1.7, 1.7].forEach((x) => {
-          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.35, 0.08), deskMat);
-          leg.position.set(x, -1.1, -2.65);
-          world.add(leg);
-        });
-        const monitor = new THREE.Mesh(
-          new THREE.BoxGeometry(2.05, 1.18, 0.08),
-          new THREE.MeshStandardMaterial({ color: 0x09182a, roughness: 0.35, metalness: 0.4 })
-        );
-        monitor.position.set(0, 0.75, -2.63);
-        world.add(monitor);
-        const monitorGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.76, 0.9), new THREE.MeshBasicMaterial({ color: 0x063c68 }));
-        monitorGlow.position.set(0, 0.75, -2.58);
-        world.add(monitorGlow);
-
-        // Center the real GLB from its bounds and keep its native animation intact.
-        avatarRoot = new THREE.Group();
-        avatarRoot.position.set(0, -0.50, 0.15);
-        world.add(avatarRoot);
-
-        const loader = new GLTFLoader();
-        loader.load(
-          MODEL_URL,
-          (gltf) => {
-            if (cancelled) return;
-            const model = gltf.scene;
-            model.visible = true;
-            model.traverse((node) => {
-              if (!node.isMesh) return;
-              node.visible = true;
-              node.frustumCulled = false;
-              node.castShadow = false;
-              node.receiveShadow = false;
-              if (node.material) {
-                const materials = Array.isArray(node.material) ? node.material : [node.material];
-                materials.forEach((material) => {
-                  material.needsUpdate = true;
-                  if ('roughness' in material) material.roughness = Math.min(material.roughness, 0.8);
-                });
-              }
-            });
-
-            const box = new THREE.Box3().setFromObject(model);
-            const size = box.getSize(new THREE.Vector3());
-            const center = box.getCenter(new THREE.Vector3());
-            const targetHeight = 2.82;
-            const scale = targetHeight / Math.max(size.y, 0.001);
-            model.scale.setScalar(scale);
-            model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
-            avatarRoot.add(model);
-
-            mixer = new THREE.AnimationMixer(model);
-            const idle = gltf.animations.find((clip) => /idle|stand|breath|casual|relax/i.test(clip.name)) || gltf.animations[0];
-            if (idle) mixer.clipAction(idle).setLoop(THREE.LoopRepeat, Infinity).play();
-            setLoaded(true);
-          },
-          undefined,
-          (error) => {
-            console.error('GLB avatar failed to load', error);
-            setFailed(true);
-          }
-        );
-
-        const nodeVisuals = NODES.map((node) => {
-          const group = new THREE.Group();
-          group.position.set(node.x, -0.48, node.z);
-          const ring = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.014, 8, 48), ringMat.clone());
-          ring.rotation.x = Math.PI / 2;
-          group.add(ring);
-          const core = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 12), new THREE.MeshBasicMaterial({ color: 0x9be8ff }));
-          group.add(core);
-          world.add(group);
-          return { group, ring, core };
-        });
-
-        const resize = () => {
-          const width = Math.max(mount.clientWidth, 1);
-          const height = Math.max(mount.clientHeight, 1);
-          camera.aspect = width / height;
-          camera.updateProjectionMatrix();
-          renderer.setSize(width, height, false);
-        };
-        resizeObserver = new ResizeObserver(resize);
-        resizeObserver.observe(mount);
-        resize();
-
-        const clock = new THREE.Clock();
-        const animate = () => {
-          if (cancelled) return;
-          frame = requestAnimationFrame(animate);
-          const dt = Math.min(clock.getDelta(), 0.033);
-          const time = clock.elapsedTime;
-          if (mixer) mixer.update(dt);
-
-          const rotation = rotationRef.current;
-          if (!dragRef.current.active) {
-            rotation.target += dt * 0.12;
-          }
-          rotation.current += (rotation.target - rotation.current) * Math.min(dt * 7, 1);
-          if (avatarRoot) avatarRoot.rotation.y = rotation.current;
-
-          holo.rotation.y += dt * 0.08;
-          holo.children.forEach((child) => {
-            if (child.userData.speed) child.rotation.z += child.userData.speed * dt;
-          });
-          scan.position.y = -0.35 + ((Math.sin(time * 1.5) + 1) / 2) * 2.8;
-          particles.rotation.y = time * 0.025;
-          glow.material.opacity = 0.12 + Math.sin(time * 1.2) * 0.035;
-          nodeVisuals.forEach((visual, index) => {
-            const isActive = NODES[index].id === activeRef.current;
-            visual.group.position.y = -0.48 + Math.sin(time * 1.8 + index) * 0.035;
-            visual.ring.rotation.z += dt * (isActive ? 0.9 : 0.25);
-            visual.ring.material.opacity = isActive ? 0.95 : 0.55;
-            visual.core.scale.setScalar(isActive ? 1.35 : 1);
-          });
-          renderer.render(scene, camera);
-        };
-        animate();
-      } catch (error) {
-        console.error('3D scene failed to initialize', error);
-        setFailed(true);
-      }
-    };
-
-    start();
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(frame);
-      resizeObserver?.disconnect();
-      renderer?.dispose();
-      if (renderer?.domElement?.parentNode === mount) mount.removeChild(renderer.domElement);
-      mount.removeEventListener('pointerdown', onPointerDown);
-      mount.removeEventListener('pointermove', onPointerMove);
-      mount.removeEventListener('pointerup', stopDrag);
-      mount.removeEventListener('pointercancel', stopDrag);
-      mount.classList.remove('is-dragging');
-    };
-  }, []);
-
-  const resetRotation = () => {
-    rotationRef.current.target = 0;
-  };
-
-  return (
-    <div className="command-shell">
-      <div ref={mountRef} className="three-canvas avatar-360-canvas" aria-label="Interactive 360 degree 3D avatar. Drag left or right to rotate." />
-      <div className="holo-vignette" />
-      <div className="holo-lines" />
-      <div className="node-stack" aria-label="Portfolio focus areas">
-        {NODES.map((node) => (
-          <button key={node.id} className={active === node.id ? 'active' : ''} onClick={() => selectNode(node.id)}>
-            <span>{node.id === 'ai' ? '01' : node.id === 'build' ? '02' : '03'}</span>
-            <div><strong>{node.title}</strong><small>{node.sub}</small></div>
-            <b>↗</b>
-          </button>
-        ))}
-      </div>
-      <div className="avatar-360-controls" aria-label="360 degree avatar controls">
-        <button type="button" onClick={resetRotation} aria-label="Reset avatar rotation">↺</button>
-        <span><strong>360°</strong><small>{loaded ? 'DRAG TO ROTATE' : failed ? '3D FALLBACK' : 'LOADING AVATAR'}</small></span>
-        <span className="rotation-dot" aria-hidden="true" />
-      </div>
-    </div>
-  );
+export default function PortfolioScene(){
+  const mountRef=useRef(null), rotationRef=useRef({current:0,target:0}), dragRef=useRef({active:false,x:0});
+  const [loaded,setLoaded]=useState(false),[failed,setFailed]=useState(false);
+  useEffect(()=>{
+    const mount=mountRef.current;if(!mount)return undefined;let cancelled=false,frame=0,renderer,observer,mixer,avatarRoot;
+    const down=e=>{dragRef.current={active:true,x:e.clientX};mount.setPointerCapture?.(e.pointerId);mount.classList.add('is-dragging')};
+    const move=e=>{if(!dragRef.current.active)return;const dx=e.clientX-dragRef.current.x;dragRef.current.x=e.clientX;rotationRef.current.target+=dx*.012};
+    const up=e=>{dragRef.current.active=false;mount.releasePointerCapture?.(e.pointerId);mount.classList.remove('is-dragging')};
+    mount.addEventListener('pointerdown',down);mount.addEventListener('pointermove',move);mount.addEventListener('pointerup',up);mount.addEventListener('pointercancel',up);
+    const start=async()=>{try{
+      const THREE=await import('three');const {GLTFLoader}=await import('three/examples/jsm/loaders/GLTFLoader.js');if(cancelled)return;
+      const scene=new THREE.Scene();scene.background=new THREE.Color(0x020913);scene.fog=new THREE.Fog(0x020913,8,18);
+      const camera=new THREE.PerspectiveCamera(30,1,.1,60);camera.position.set(0,.05,7.8);camera.lookAt(0,-.5,-.55);
+      renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;renderer.setClearColor(0x020913,1);mount.appendChild(renderer.domElement);
+      scene.add(new THREE.HemisphereLight(0x9fd9ff,0x06111e,2.1));
+      const key=new THREE.DirectionalLight(0xffffff,3.5);key.position.set(-4,6,4);scene.add(key);
+      const rim=new THREE.DirectionalLight(0x198cff,5);rim.position.set(4,3,-3);scene.add(rim);
+      const cyan=new THREE.PointLight(0x20dfff,20,9,2);cyan.position.set(2,1.3,1);scene.add(cyan);
+      const blue=new THREE.PointLight(0x0b73ff,22,11,2);blue.position.set(-2,-.2,1.5);scene.add(blue);
+      const world=new THREE.Group();scene.add(world);
+      const floor=new THREE.Mesh(new THREE.PlaneGeometry(13,13),new THREE.MeshStandardMaterial({color:0x06121e,roughness:.82,metalness:.25}));floor.rotation.x=-Math.PI/2;floor.position.y=-1.92;world.add(floor);
+      const grid=new THREE.GridHelper(12,36,0x168cff,0x12324a);grid.position.y=-1.9;grid.material.transparent=true;grid.material.opacity=.28;world.add(grid);
+      const back=new THREE.Mesh(new THREE.PlaneGeometry(14,9),new THREE.MeshBasicMaterial({color:0x041321}));back.position.set(0,1.15,-4.4);world.add(back);
+      const halo=new THREE.Mesh(new THREE.CircleGeometry(3.3,64),new THREE.MeshBasicMaterial({color:0x087cff,transparent:true,opacity:.12,depthWrite:false}));halo.scale.set(1.35,.82,1);halo.position.set(0,.45,-4.25);world.add(halo);
+      for(let i=0;i<8;i++){const x=-5.6+i*1.6;const beam=new THREE.Mesh(new THREE.PlaneGeometry(.035,7),new THREE.MeshBasicMaterial({color:i%2?0x1acbff:0x167bff,transparent:true,opacity:.13,depthWrite:false}));beam.position.set(x,.9,-4.1);world.add(beam)}
+      const platform=new THREE.Mesh(new THREE.CylinderGeometry(2.05,.2,.22,96),new THREE.MeshStandardMaterial({color:0x081b2d,roughness:.3,metalness:.7}));platform.position.set(0,-1.76,-.4);world.add(platform);
+      [2.15,1.72,1.18].forEach((r,i)=>{const ring=new THREE.Mesh(new THREE.TorusGeometry(r,.018+(i===0?.018:0),8,128),new THREE.MeshBasicMaterial({color:i===1?0x26e1ff:0x168cff,transparent:true,opacity:i===1?.85:.58,depthWrite:false}));ring.rotation.x=Math.PI/2;ring.position.set(0,-1.61,-.4);ring.userData.speed=i%2?.32:-.22;world.add(ring)});
+      const particles=new THREE.Group();world.add(particles);for(let i=0;i<75;i++){const p=new THREE.Mesh(new THREE.SphereGeometry(.009+(i%4)*.004,6,5),new THREE.MeshBasicMaterial({color:i%3?0x238fff:0x35e7ff,transparent:true,opacity:.22+(i%4)*.06}));const a=i*2.399,r=1.7+(i%9)*.34;p.position.set(Math.cos(a)*r,-1.35+(i%13)*.25,-.6+Math.sin(a)*1.2);particles.add(p)}
+      const desk=new THREE.Mesh(new THREE.BoxGeometry(4.5,.08,.55),new THREE.MeshStandardMaterial({color:0x0c2236,roughness:.5,metalness:.35}));desk.position.set(0,.05,-2.75);world.add(desk);
+      const monitor=new THREE.Mesh(new THREE.BoxGeometry(2.15,1.28,.08),new THREE.MeshStandardMaterial({color:0x02070d,roughness:.3,metalness:.65}));monitor.position.set(0,.72,-2.72);world.add(monitor);
+      const screen=new THREE.Mesh(new THREE.PlaneGeometry(1.85,.98),new THREE.MeshBasicMaterial({color:0x06365b}));screen.position.set(0,.72,-2.66);world.add(screen);
+      avatarRoot=new THREE.Group();avatarRoot.position.set(0,-.47,.05);world.add(avatarRoot);
+      new GLTFLoader().load(MODEL_URL,gltf=>{if(cancelled)return;const model=gltf.scene;model.visible=true;model.traverse(n=>{if(!n.isMesh)return;n.visible=true;n.frustumCulled=false;if(n.material){const ms=Array.isArray(n.material)?n.material:[n.material];ms.forEach(m=>{m.needsUpdate=true;if('roughness' in m)m.roughness=Math.min(m.roughness,.72)})}});const box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3()),scale=2.86/Math.max(size.y,.001);model.scale.setScalar(scale);model.position.set(-center.x*scale,-center.y*scale,-center.z*scale);avatarRoot.add(model);mixer=new THREE.AnimationMixer(model);const clip=gltf.animations.find(c=>/idle|stand|breath|casual|relax/i.test(c.name))||gltf.animations[0];if(clip)mixer.clipAction(clip).setLoop(THREE.LoopRepeat,Infinity).play();setLoaded(true)},undefined,err=>{console.error(err);setFailed(true)});
+      const resize=()=>{const w=Math.max(mount.clientWidth,1),h=Math.max(mount.clientHeight,1);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)};observer=new ResizeObserver(resize);observer.observe(mount);resize();
+      const clock=new THREE.Clock();const animate=()=>{if(cancelled)return;frame=requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.033),t=clock.elapsedTime;if(mixer)mixer.update(dt);if(!dragRef.current.active)rotationRef.current.target+=dt*.1;rotationRef.current.current+=(rotationRef.current.target-rotationRef.current.current)*Math.min(dt*7,1);if(avatarRoot)avatarRoot.rotation.y=rotationRef.current.current;particles.rotation.y=t*.025;world.children.forEach(o=>{if(o.userData.speed)o.rotation.z+=o.userData.speed*dt});halo.material.opacity=.08+Math.sin(t*1.2)*.025;renderer.render(scene,camera)};animate();
+    }catch(err){console.error(err);setFailed(true)}};start();return()=>{cancelled=true;cancelAnimationFrame(frame);observer?.disconnect();renderer?.dispose();if(renderer?.domElement?.parentNode===mount)mount.removeChild(renderer.domElement);mount.removeEventListener('pointerdown',down);mount.removeEventListener('pointermove',move);mount.removeEventListener('pointerup',up);mount.removeEventListener('pointercancel',up)};
+  },[]);
+  return <div className="command-shell cinematic-avatar"><div ref={mountRef} className="three-canvas avatar-360-canvas" aria-label="Interactive 360 degree 3D avatar. Drag left or right to rotate."/><div className="avatar-status"><span className={loaded?'ready':''}/>{loaded?'LIVE 3D · NATIVE ANIMATION':failed?'3D FALLBACK':'LOADING AVATAR'}</div><div className="avatar-360-controls"><button type="button" onClick={()=>rotationRef.current.target=0} aria-label="Reset avatar rotation">↺</button><span><strong>360°</strong><small>DRAG TO ROTATE</small></span><span className="rotation-dot"/></div></div>;
 }
