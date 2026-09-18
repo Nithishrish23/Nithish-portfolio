@@ -1,320 +1,56 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowUpRight, BrainCircuit, Bot, Code2, ExternalLink, Github, Mail, MapPin, Menu, Send, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowDown, ArrowUpRight, BrainCircuit, Check, Code2, Database, Mail, MapPin, Menu, Phone, Send, Sparkles, X, Cloud, Smartphone, Layers3 } from 'lucide-react';
 import { createRoot } from 'react-dom/client';
 import PortfolioScene from './PortfolioScene';
 import './styles.css';
-import './reference-theme.css';
 
 const PROFILE_IMAGE = 'https://raw.githubusercontent.com/Nithishrish23/Nithish-portfolio/98f873233766d9efe6688b559262306092e7545d/static/images/1727781988320.jpg';
 const EMAIL = 'nithishkumar.job@gmail.com';
-const RESUME_URL = 'https://raw.githubusercontent.com/Nithishrish23/Nithish-portfolio/main/static/files/nithishresume(1).pdf';
+const PHONE = '+91 7708358913';
 
-const BRAND_ICONS = {
-  OpenAI: 'https://cdn.simpleicons.org/openai',
-  Claude: 'https://cdn.simpleicons.org/anthropic',
-  Gemini: 'https://cdn.simpleicons.org/googlegemini',
-  Ollama: 'https://cdn.simpleicons.org/ollama',
-  LangChain: 'https://cdn.simpleicons.org/langchain',
-  Llama: 'https://cdn.simpleicons.org/meta',
-  RAG: 'https://cdn.simpleicons.org/weaviate',
-  MCP: 'https://cdn.simpleicons.org/modelcontextprotocol',
-  Python: 'https://cdn.simpleicons.org/python',
-  FastAPI: 'https://cdn.simpleicons.org/fastapi',
-  Django: 'https://cdn.simpleicons.org/django',
-  Flask: 'https://cdn.simpleicons.org/flask',
-  PostgreSQL: 'https://cdn.simpleicons.org/postgresql',
-  MySQL: 'https://cdn.simpleicons.org/mysql',
-  Redis: 'https://cdn.simpleicons.org/redis',
-  Celery: 'https://cdn.simpleicons.org/celery',
-  React: 'https://cdn.simpleicons.org/react',
-  'Next.js': 'https://cdn.simpleicons.org/nextdotjs',
-  TypeScript: 'https://cdn.simpleicons.org/typescript',
-  Tailwind: 'https://cdn.simpleicons.org/tailwindcss',
-  'Three.js': 'https://cdn.simpleicons.org/threedotjs',
-  Vite: 'https://cdn.simpleicons.org/vite',
-  WebGL: 'https://cdn.simpleicons.org/webgl',
-  GSAP: 'https://cdn.simpleicons.org/greensock',
-  Docker: 'https://cdn.simpleicons.org/docker',
-  Git: 'https://cdn.simpleicons.org/git',
-  Linux: 'https://cdn.simpleicons.org/linux',
-  AWS: 'https://cdn.simpleicons.org/amazonaws/FF9900',
-  Vercel: 'https://cdn.simpleicons.org/vercel',
-  Azure: 'https://cdn.simpleicons.org/microsoftazure/0078D4',
-  GitHub: 'https://cdn.simpleicons.org/github',
-  'CI/CD': 'https://cdn.simpleicons.org/githubactions',
-};
-
-const technologyGroups = [
-  { number: '01', title: 'AI & LLM', lead: 'Intelligence layer', icon: BrainCircuit, items: ['OpenAI', 'Claude', 'Gemini', 'Ollama', 'LangChain', 'Llama', 'RAG', 'MCP'] },
-  { number: '02', title: 'Backend & Data', lead: 'Systems layer', icon: Code2, items: ['Python', 'FastAPI', 'Django', 'Flask', 'PostgreSQL', 'MySQL', 'Redis', 'Celery'] },
-  { number: '03', title: 'Frontend & 3D', lead: 'Experience layer', icon: Code2, items: ['React', 'Next.js', 'TypeScript', 'Tailwind', 'Three.js', 'Vite', 'WebGL', 'GSAP'] },
-  { number: '04', title: 'Tools & Cloud', lead: 'Delivery layer', icon: Code2, items: ['Docker', 'Git', 'Linux', 'AWS', 'Vercel', 'Azure', 'GitHub', 'CI/CD'] },
+const BRAND_ICONS = { Python:'https://cdn.simpleicons.org/python', FastAPI:'https://cdn.simpleicons.org/fastapi', React:'https://cdn.simpleicons.org/react', 'Next.js':'https://cdn.simpleicons.org/nextdotjs', Flutter:'https://cdn.simpleicons.org/flutter', 'Node.js':'https://cdn.simpleicons.org/nodedotjs', PostgreSQL:'https://cdn.simpleicons.org/postgresql', MongoDB:'https://cdn.simpleicons.org/mongodb', AWS:'https://cdn.simpleicons.org/amazonaws/FF9900', Azure:'https://cdn.simpleicons.org/microsoftazure/0078D4', Docker:'https://cdn.simpleicons.org/docker', Git:'https://cdn.simpleicons.org/git', OpenAI:'https://cdn.simpleicons.org/openai', Claude:'https://cdn.simpleicons.org/anthropic', Gemini:'https://cdn.simpleicons.org/googlegemini', Ollama:'https://cdn.simpleicons.org/ollama', LangChain:'https://cdn.simpleicons.org/langchain', RAG:'https://cdn.simpleicons.org/weaviate', MCP:'https://cdn.simpleicons.org/modelcontextprotocol' };
+const skillGroups = [
+  { title:'AI & Automation', subtitle:'LLM · RAG · AI Agents', icon:BrainCircuit, items:['OpenAI','Claude','Gemini','Ollama','LangChain','RAG','MCP'] },
+  { title:'Web Development', subtitle:'React · Next.js · Python', icon:Code2, items:['React','Next.js','FastAPI','Python','Node.js'] },
+  { title:'Mobile Development', subtitle:'Flutter · Android · iOS', icon:Smartphone, items:['Flutter','React'] },
+  { title:'Cloud & DevOps', subtitle:'AWS · Azure · Docker', icon:Cloud, items:['AWS','Azure','Docker','Git'] },
+  { title:'Database & Systems', subtitle:'PostgreSQL · MongoDB', icon:Database, items:['PostgreSQL','MongoDB','Python','FastAPI'] },
+  { title:'Product Engineering', subtitle:'Build · Ship · Scale', icon:Layers3, items:['React','Next.js','FastAPI','Python','Git'] }
 ];
-
-const work = [
-  { index: '01', title: 'Salesforce AI Copilot', category: 'AI / Enterprise Automation', description: 'Permission-aware AI with RAG, MCP orchestration, conversational workflows, validation, approvals and auditability before critical actions.', stack: ['FastAPI', 'React', 'RAG', 'MCP', 'Salesforce', 'OpenAI', 'Claude'], repo: 'https://github.com/Nithishrish23/Salesforce-ai' },
-  { index: '02', title: 'Multi-Agent Finance Platform', category: 'AI Agents / Finance', description: 'Provider-agnostic LLM routing, DAG workflows, memory, finance analysis, notifications and a fail-closed risk layer.', stack: ['Next.js', 'FastAPI', 'PostgreSQL', 'Redis', 'Celery'], repo: 'https://github.com/Nithishrish23/agent-earning' },
-  { index: '03', title: 'Full-Stack Commerce Platform', category: 'Product Engineering', description: 'B2B/B2C commerce across customer, seller and admin workflows with Python APIs, PostgreSQL, authentication and payments.', stack: ['React', 'Vite', 'Flask', 'PostgreSQL', 'JWT', 'Stripe'], repo: 'https://github.com/Nithishrish23' },
-  { index: '04', title: 'KYC Document Intelligence', category: 'Computer Vision', description: 'Computer-vision workflows for PAN, Aadhaar, address and signature documents with page classification and Aadhaar masking.', stack: ['Python', 'YOLO', 'OpenCV', 'PIL'], repo: 'https://github.com/Nithishrish23' },
+const projects = [
+  { title:'AI Agent Platform', type:'AI · AUTOMATION', text:'AI agents that connect models, tools and business workflows with controlled execution.', stack:['React','FastAPI','PostgreSQL'], accent:'01' },
+  { title:'Salesforce AI Copilot', type:'ENTERPRISE AI', text:'Permission-aware conversational automation with RAG, MCP, validation, approvals and auditability.', stack:['FastAPI','RAG','MCP'], accent:'02' },
+  { title:'SaaS Local Shop', type:'MOBILE · SAAS', text:'Flutter product for local businesses with customer, admin and operational workflows.', stack:['Flutter','Node.js','PostgreSQL'], accent:'03' },
+  { title:'KYC Document Intelligence', type:'COMPUTER VISION', text:'Document classification and extraction for PAN, Aadhaar, address and signature workflows.', stack:['Python','YOLO','OpenCV'], accent:'04' }
 ];
-
-const companies = [
-  ['MathuraTech', 'Technology & digital work', 'https://mathuratech.com'],
-  ['Popular Traders', 'Web product work', 'https://populartraders.mathuratech.com'],
-  ['Infu Digital', 'Digital growth & web', 'https://infudigital.com'],
-  ['Ninai Technologies', 'AI & technology solutions', 'https://www.ninaitechnologies.com'],
-];
-
-const capabilities = [
-  { icon: BrainCircuit, title: 'LLM Engineering', text: 'OpenAI, Claude, Gemini, LLaMA, OpenRouter, structured outputs and tool calling.' },
-  { icon: Bot, title: 'AI Agents & RAG', text: 'Agent orchestration, retrieval, memory, MCP, workflows and permission-aware automation.' },
-  { icon: Code2, title: 'Backend & Product', text: 'Python, FastAPI, Flask, Django, React, Next.js, PostgreSQL and scalable APIs.' },
-  { icon: ShieldCheck, title: 'Reliable AI', text: 'Validation, approvals, role controls, auditability, testing and fail-closed execution.' },
-];
-
 const experience = [
-  { period: 'JUN 2025 — PRESENT', role: 'Software Engineer - II', company: 'CodeDTX Solutions PVT LTD', text: 'Salesforce API and Metadata integrations, intelligent automation, permission-aware action engines and LLM-powered conversational interfaces.' },
-  { period: 'OCT 2024 — JUN 2025', role: 'Team Lead', company: 'PCL INFOTECH PVT LTD', text: 'B2B/B2C e-commerce engineering with Flask, React and PostgreSQL, plus AI agents for business automation.' },
-  { period: 'AUG 2023 — OCT 2024', role: 'AI Software Associate', company: 'Green Books', text: 'AI/ML and image-identification software with backend optimization, testing, deployment and security.' },
-  { period: 'DEC 2022 — MAR 2023', role: 'Data Analyst Intern', company: 'Skill-Lync', text: 'Trend and correlation analysis with Tableau and Excel visualizations.' },
+  ['2025 — NOW','Software Engineer - II','CodeDTX Solutions PVT LTD','Salesforce API and Metadata integrations, intelligent automation, permission-aware action engines and LLM-powered conversational interfaces.'],
+  ['2024 — 2025','Team Lead','PCL INFOTECH PVT LTD','B2B/B2C commerce engineering with Flask, React and PostgreSQL, plus AI agents for business automation.'],
+  ['2023 — 2024','AI Software Associate','Green Books','AI/ML and image-identification software with backend optimization, testing, deployment and security.'],
+  ['2022 — 2023','Data Analyst Intern','Skill-Lync','Trend and correlation analysis with Tableau and Excel visualizations.']
 ];
+const navItems = [['home','Home'],['about','About'],['skills','Skills'],['projects','Projects'],['experience','Experience'],['contact','Contact']];
+const emptyForm = { fullname:'', email:'', mobile:'', message:'' };
 
-const emptyForm = { fullname: '', email: '', country: '', mobile: '', message: '' };
-
-function App() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [intro, setIntro] = useState(true);
-  const [theme, setTheme] = useState('light');
-  const [form, setForm] = useState(emptyForm);
-  const [status, setStatus] = useState({ type: '', message: '' });
-  const [sending, setSending] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('portfolio-theme') || 'light';
-    setTheme(saved);
-    document.documentElement.dataset.theme = saved;
-    const timer = setTimeout(() => setIntro(false), 900);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem('portfolio-theme', theme);
-  }, [theme]);
-
-  const go = (id) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setMenuOpen(false);
-  };
-
-  const setField = (key, value) => setForm((current) => ({ ...current, [key]: value }));
-
-  const submit = async (event) => {
-    event.preventDefault();
-    setSending(true);
-    setStatus({ type: '', message: '' });
-    try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (response.ok && !data.fallback) {
-        setStatus({ type: 'success', message: 'Message sent successfully. I will get back to you soon.' });
-        setForm(emptyForm);
-      } else if (data.fallback) {
-        const subject = encodeURIComponent(`Portfolio enquiry from ${form.fullname}`);
-        const body = encodeURIComponent(`Name: ${form.fullname}\nEmail: ${form.email}\nCountry: ${form.country}\nMobile: ${form.mobile}\n\n${form.message}`);
-        window.location.href = `mailto:${EMAIL}?subject=${subject}&body=${body}`;
-        setStatus({ type: 'success', message: 'Your email app is opening with the message ready to send.' });
-      } else {
-        throw new Error(data.message || 'Unable to send your message.');
-      }
-    } catch (error) {
-      setStatus({ type: 'error', message: error.message });
-    } finally {
-      setSending(false);
-    }
-  };
-
-  return (
-    <div className="site">
-      <div className={`intro-screen ${intro ? 'show' : ''}`} aria-hidden={!intro}>
-        <div className="intro-ring"><img src={PROFILE_IMAGE} alt="" /></div>
-        <div className="intro-name">NITHISH KUMAR</div>
-        <div className="intro-status"><span /> INITIALIZING</div>
-      </div>
-
-      <header className="nav-wrap">
-        <nav className="nav container">
-          <button className="brand" onClick={() => go('home')} aria-label="Back to home">
-            <span className="brand-mark"><img className="brand-photo" src={PROFILE_IMAGE} alt="Nithish Kumar" /></span>
-            <span><strong>Nithish Kumar</strong><small>AI Engineer &amp; Full Stack Developer</small></span>
-          </button>
-          <div className={`nav-links ${menuOpen ? 'open' : ''}`}>
-            {[
-              ['home', 'Home'],
-              ['about', 'About'],
-              ['work', 'Projects'],
-              ['experience', 'Experience'],
-              ['stack', 'Tech Stack'],
-              ['contact', 'Contact'],
-            ].map(([id, label]) => (
-              <button key={id} className={id === 'home' ? 'active' : ''} onClick={() => go(id)}>{label}</button>
-            ))}
-            <a href="https://github.com/Nithishrish23" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={13} /></a>
-          </div>
-          <div className="nav-actions">
-            <button className="theme-toggle" onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')} aria-label="Toggle theme">
-              <span>{theme === 'light' ? '☼' : '☾'}</span>
-            </button>
-            <button className="nav-cta" onClick={() => go('contact')}>Let's Talk <ArrowUpRight size={14} /></button>
-            <button className="menu-btn" onClick={() => setMenuOpen((open) => !open)} aria-label="Toggle navigation">{menuOpen ? <X /> : <Menu />}</button>
-          </div>
-        </nav>
-      </header>
-
-      <main>
-        <section id="home" className="hero container">
-          <div className="hero-copy reveal">
-            <div className="eyebrow">BUILD · AUTOMATE · INNOVATE</div>
-            <div className="availability"><b /> Open to opportunities</div>
-            <h1>Turning ideas into<br />real-world <em>solutions.</em></h1>
-            <p className="hero-text">I'm Nithish Kumar, an AI Engineer &amp; Full Stack Developer focused on LLM applications, RAG, AI agents, automation and scalable web systems that create real impact.</p>
-            <div className="hero-meta">
-              <span><MapPin size={16} /> Chennai, India</span>
-              <span><Sparkles size={16} /> Open to opportunities</span>
-              <span><Bot size={16} /> Let's build together</span>
-            </div>
-            <div className="hero-actions">
-              <button className="primary-btn" onClick={() => go('work')}>View My Work <ArrowUpRight size={16} /></button>
-              <button className="ghost-btn" onClick={() => window.open(RESUME_URL, '_blank')}>Download Resume ↓</button>
-            </div>
-            <div className="hero-metrics">
-              <div><strong>4+</strong><span>Years Experience</span></div>
-              <div><strong>20+</strong><span>Projects Built</span></div>
-              <div><strong>5+</strong><span>Domains</span></div>
-              <div><strong>∞</strong><span>Continuous Learning</span></div>
-            </div>
-          </div>
-
-          <div className="hero-visual">
-            <PortfolioScene />
-            <div className="hero-scene-copy">
-              <div className="scene-pill"><BrainCircuit size={18} /><span><b>AI</b> Think</span></div>
-              <div className="scene-pill"><Code2 size={18} /><span><b>Code</b> Build</span></div>
-              <div className="scene-pill"><Bot size={18} /><span><b>Automate</b> Scale</span></div>
-              <div className="scene-pill"><Sparkles size={18} /><span><b>Impact</b> Repeat</span></div>
-            </div>
-            <div className="hero-photo-card">
-              <img src={PROFILE_IMAGE} alt="Nithish Kumar portrait" />
-              <div><span>AI ENGINEER</span><strong>NITHISH KUMAR</strong></div>
-            </div>
-          </div>
-        </section>
-
-        <section id="about" className="section container about-section">
-          <div className="section-head">
-            <span className="section-number">01</span>
-            <div><p className="section-kicker">ABOUT</p><h2>Engineering <span>real impact.</span></h2></div>
-            <p className="section-note">AI, backend, interfaces and automation designed as one production system.</p>
-          </div>
-          <div className="about-grid">
-            <div className="about-statement">
-              <p>I work at the intersection of <strong>AI and product engineering</strong>, with a Python-first approach and a strong focus on reliable execution.</p>
-              <p>My work spans conversational AI, Salesforce automation, multi-agent workflows, retrieval systems, computer vision and production web applications.</p>
-              <div className="signature-line"><span>CHENNAI · INDIA</span><span>AI · FULL STACK · AUTOMATION</span></div>
-            </div>
-            <div className="capability-list">
-              {capabilities.map(({ icon: Icon, title, text }) => (
-                <article key={title}><Icon size={20} /><div><h3>{title}</h3><p>{text}</p></div><ArrowUpRight size={15} /></article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="work" className="section work-section">
-          <div className="container">
-            <div className="section-head">
-              <span className="section-number">02</span>
-              <div><p className="section-kicker">PROJECTS</p><h2>Systems I've <span>shipped.</span></h2></div>
-              <p className="section-note">AI, automation, backend and product engineering with real implementation depth.</p>
-            </div>
-            <div className="work-list">
-              {work.map((item) => (
-                <article className="work-row" key={item.title}>
-                  <div className="work-index">{item.index}</div>
-                  <div className="work-main"><p className="work-category">{item.category}</p><h3>{item.title}</h3><p>{item.description}</p><div className="stack">{item.stack.map((skill) => <span key={skill}>{skill}</span>)}</div></div>
-                  <a className="work-link" href={item.repo} target="_blank" rel="noreferrer" aria-label={`Open ${item.title} on GitHub`}><Github size={18} /><ArrowUpRight size={14} /></a>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="section company-section">
-          <div className="container">
-            <div className="section-head compact"><span className="section-number">03</span><div><p className="section-kicker">REAL-WORLD WORK</p><h2>Built for <span>business.</span></h2></div></div>
-            <p className="company-intro">Technology and digital product work across AI-first businesses and web platforms.</p>
-            <div className="company-grid">
-              {companies.map(([name, detail, href]) => (
-                <a href={href} target="_blank" rel="noreferrer" className="company-card" key={name}><div className="company-symbol">{name[0]}</div><div><h3>{name}</h3><p>{detail}</p></div><ExternalLink size={15} /></a>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="experience" className="section experience-section">
-          <div className="container">
-            <div className="section-head"><span className="section-number">04</span><div><p className="section-kicker">EXPERIENCE</p><h2>Experience with <span>depth.</span></h2></div></div>
-            <div className="experience-layout">
-              <div className="experience-intro"><p>Engineering across AI, software, analytics and full-stack product development.</p><div className="experience-rule" /><span>2022 — NOW</span></div>
-              <div className="timeline">{experience.map((item) => <article key={item.company}><span className="period">{item.period}</span><div><h3>{item.role}</h3><h4>{item.company}</h4><p>{item.text}</p></div></article>)}</div>
-            </div>
-          </div>
-        </section>
-
-        <section id="stack" className="section stack-section">
-          <div className="container">
-            <div className="stack-banner"><div><p className="section-kicker">TECHNOLOGY</p><h2>Engineered in <span>layers.</span></h2></div><p>A focused toolkit across AI, backend, frontend, 3D and cloud to build, deploy and scale real-world solutions.</p></div>
-            <div className="technology-grid">
-              {technologyGroups.map((group) => {
-                const GroupIcon = group.icon;
-                return (
-                  <article className="technology-card" key={group.title}>
-                    <div className="technology-card-head"><div className="technology-icon"><GroupIcon size={22} /></div><div><div className="technology-top"><span>{group.number}</span><small>{group.lead}</small></div><h3>{group.title}</h3></div></div>
-                    <div className="technology-items">
-                      {group.items.map((item) => <span key={item}><img src={BRAND_ICONS[item]} alt={`${item} logo`} loading="lazy" onError={(event) => { event.currentTarget.src = '/icon-fallback.svg'; }} /><b>{item}</b></span>)}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section id="contact" className="section contact-section">
-          <div className="container contact-grid">
-            <div className="contact-copy"><span className="section-number">05</span><p className="section-kicker">LET'S BUILD</p><h2>Have a hard problem?<br /><span>Let's make it software.</span></h2><p>For AI products, intelligent automation, full-stack systems or engineering opportunities, send a message.</p><div className="direct-contact"><a href={`mailto:${EMAIL}`}><Mail size={16} /> {EMAIL}</a><span><MapPin size={16} /> Chennai, Tamil Nadu, India</span></div></div>
-            <form className="contact-form" onSubmit={submit}>
-              <div className="form-title"><span>CONTACT</span><b>Tell me what you're building.</b></div>
-              <div className="form-row"><input required value={form.fullname} onChange={(event) => setField('fullname', event.target.value)} placeholder="Full name" /><input required type="email" value={form.email} onChange={(event) => setField('email', event.target.value)} placeholder="Email address" /></div>
-              <div className="form-row"><input required value={form.country} onChange={(event) => setField('country', event.target.value)} placeholder="Country" /><input required value={form.mobile} onChange={(event) => setField('mobile', event.target.value)} placeholder="Mobile number" /></div>
-              <textarea required value={form.message} onChange={(event) => setField('message', event.target.value)} placeholder="Tell me about the project or opportunity" rows="6" />
-              <button className="primary-btn send-btn" disabled={sending}>{sending ? 'Preparing…' : <>Send message <Send size={16} /></>}</button>
-              {status.message && <div className={`form-status ${status.type}`}>{status.message}</div>}
-            </form>
-          </div>
-        </section>
-      </main>
-
-      <footer className="footer container">
-        <div className="footer-brand"><img className="brand-photo" src={PROFILE_IMAGE} alt="Nithish Kumar" /><div><strong>Nithish Kumar</strong><span>AI Engineer · Full Stack Developer</span></div></div>
-        <div className="footer-links"><a href="https://github.com/Nithishrish23" target="_blank" rel="noreferrer"><Github size={15} /> GitHub</a><span>BUILD · AUTOMATE · INNOVATE</span></div>
-      </footer>
-    </div>
-  );
+function App(){
+  const [menuOpen,setMenuOpen]=useState(false), [intro,setIntro]=useState(true), [activeProject,setActiveProject]=useState(null), [legal,setLegal]=useState(null), [form,setForm]=useState(emptyForm), [status,setStatus]=useState({type:'',message:''}), [sending,setSending]=useState(false);
+  useEffect(()=>{document.documentElement.dataset.theme='dark'; const timer=setTimeout(()=>setIntro(false),850); return()=>clearTimeout(timer)},[]);
+  const go=(id)=>{document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});setMenuOpen(false)};
+  const submit=async(e)=>{e.preventDefault();setSending(true);setStatus({type:'',message:''});try{const r=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});const d=await r.json().catch(()=>({}));if(r.ok&&!d.fallback){setStatus({type:'success',message:'Message sent successfully.'});setForm(emptyForm)}else{const subject=encodeURIComponent(`Portfolio enquiry from ${form.fullname}`),body=encodeURIComponent(`Name: ${form.fullname}\nEmail: ${form.email}\nMobile: ${form.mobile}\n\n${form.message}`);window.location.href=`mailto:${EMAIL}?subject=${subject}&body=${body}`;setStatus({type:'success',message:'Your email app is opening with the message ready.'})}}catch(err){setStatus({type:'error',message:err.message||'Unable to send message.'})}finally{setSending(false)}};
+  return <div className="site night-portfolio">
+    <div className={`intro-screen ${intro?'show':''}`} aria-hidden={!intro}><div className="intro-ring"><img src={PROFILE_IMAGE} alt=""/></div><div className="intro-name">NITHISH KUMAR</div><div className="intro-status"><span/> INITIALIZING PORTFOLIO</div></div>
+    <div className="background-field" aria-hidden="true"><span className="orb orb-a"/><span className="orb orb-b"/><span className="orb orb-c"/><span className="scanline"/></div>
+    <header className="nav-wrap"><nav className="nav container"><button className="brand" onClick={()=>go('home')} aria-label="Back to home"><span className="brand-mark"><img className="brand-photo" src={PROFILE_IMAGE} alt="Nithish Kumar"/></span><span><strong>NITHISH KUMAR</strong><small>AI ENGINEER · FULL STACK</small></span></button><div className={`nav-links ${menuOpen?'open':''}`}>{navItems.map(([id,label])=><button key={id} className={id==='home'?'active':''} onClick={()=>go(id)}>{label}</button>)}</div><div className="nav-actions"><button className="nav-cta" onClick={()=>go('contact')}>Let's Connect <ArrowUpRight size={14}/></button><button className="menu-btn" onClick={()=>setMenuOpen(v=>!v)} aria-label="Toggle navigation">{menuOpen?<X/>:<Menu/>}</button></div></nav></header>
+    <main>
+      <section id="home" className="hero container"><div className="hero-copy reveal"><div className="eyebrow"><span/> AI ENGINEER · FULL STACK DEVELOPER</div><div className="availability"><b/> AVAILABLE FOR SELECTED WORK</div><h1>Turning ideas<br/>into real-world<br/><em>solutions.</em></h1><p className="hero-text">I build intelligent products, AI agents, scalable APIs and modern web & mobile experiences that turn complex ideas into useful software.</p><div className="hero-actions"><button className="primary-btn" onClick={()=>go('projects')}>View My Work <ArrowUpRight size={16}/></button><button className="ghost-btn" onClick={()=>go('contact')}>Contact Me <Send size={15}/></button></div><div className="hero-metrics"><div><strong>4+</strong><span>YEARS</span></div><div><strong>20+</strong><span>PROJECTS</span></div><div><strong>AI</strong><span>FOCUS</span></div><div><strong>∞</strong><span>LEARNING</span></div></div><div className="hero-contact"><a href={`mailto:${EMAIL}`}><Mail size={15}/>{EMAIL}</a><a href={`tel:${PHONE.replace(/\s/g,'')}`}><Phone size={15}/>{PHONE}</a><span><MapPin size={15}/>Chennai, India</span></div></div><div className="hero-visual"><PortfolioScene/><div className="scene-card scene-left"><Code2 size={18}/><b>Code · Deploy<br/>Scale · Repeat</b></div><div className="scene-card scene-right"><Sparkles size={18}/><b>Ideas · Automation<br/>AI · Impact</b></div><div className="avatar-caption"><strong>360°</strong><span>DRAG TO ROTATE</span><ArrowDown size={15}/></div></div></section>
+      <section id="about" className="section container"><div className="section-head"><span className="section-number">01</span><div><p className="section-kicker">ABOUT</p><h2>Engineering <span>with purpose.</span></h2></div><p className="section-note">AI, product engineering and automation connected into practical production systems.</p></div><div className="about-grid"><div className="about-statement"><p>I work at the intersection of <strong>AI and product engineering</strong>, building Python-first systems with reliable execution, clean interfaces and scalable APIs.</p><p>My work spans conversational AI, Salesforce automation, multi-agent workflows, RAG, computer vision and production web applications.</p><div className="about-facts"><span><Check size={14}/> Python-first</span><span><Check size={14}/> Production minded</span><span><Check size={14}/> AI native</span></div></div><div className="about-panel"><div className="panel-label">CORE CAPABILITIES</div>{[['AI Engineering','LLM · RAG · Agents'],['Automation','MCP · Workflows · APIs'],['Product','Web · Mobile · 3D'],['Reliability','Validation · Security · Audit']].map(([a,b])=><button key={a} onClick={()=>go('skills')}><span><b>{a}</b><small>{b}</small></span><ArrowUpRight size={15}/></button>)}</div></div></section>
+      <section id="skills" className="section skills-section"><div className="container"><div className="section-head"><span className="section-number">02</span><div><p className="section-kicker">TECH STACK</p><h2>Tools that <span>ship.</span></h2></div><p className="section-note">Tap a layer to explore the technology behind the work.</p></div><div className="skill-grid">{skillGroups.map(g=>{const Icon=g.icon;return <article className="skill-card" key={g.title} onClick={()=>go('projects')}><div className="skill-icon"><Icon size={21}/></div><div className="skill-copy"><p>{g.subtitle}</p><h3>{g.title}</h3></div><ArrowUpRight size={15}/><div className="skill-items">{g.items.map(i=><span key={i}><img src={BRAND_ICONS[i]||'/icon-fallback.svg'} alt=""/>{i}</span>)}</div></article>})}</div></div></section>
+      <section id="projects" className="section projects-section"><div className="container"><div className="section-head"><span className="section-number">03</span><div><p className="section-kicker">FEATURED PROJECTS</p><h2>Built to <span>matter.</span></h2></div><p className="section-note">Click a project to reveal its implementation focus.</p></div><div className="project-grid">{projects.map(p=><article className={`project-card ${activeProject===p.title?'selected':''}`} key={p.title} onClick={()=>setActiveProject(activeProject===p.title?null:p.title)}><div className="project-top"><span>{p.accent}</span><small>{p.type}</small></div><h3>{p.title}</h3><p>{p.text}</p><div className="project-stack">{p.stack.map(s=><span key={s}>{s}</span>)}</div><div className="project-open"><span>{activeProject===p.title?'CLOSE DETAILS':'VIEW DETAILS'}</span><ArrowUpRight size={16}/></div>{activeProject===p.title&&<div className="project-detail"><b>ROLE</b><span>Architecture · Development · AI integration · Deployment</span><b>FOCUS</b><span>Reliable systems, responsive UI and production-ready workflows.</span></div>}</article>)}</div></div></section>
+      <section id="experience" className="section experience-section"><div className="container"><div className="section-head"><span className="section-number">04</span><div><p className="section-kicker">EXPERIENCE</p><h2>A path of <span>building.</span></h2></div><p className="section-note">From analytics and AI/ML to full-stack engineering and enterprise automation.</p></div><div className="timeline">{experience.map(([period,role,company,text])=><article key={company}><span className="period">{period}</span><div className="timeline-dot"/><div><h3>{role}</h3><h4>{company}</h4><p>{text}</p></div></article>)}</div></div></section>
+      <section id="contact" className="section contact-section"><div className="container contact-grid"><div className="contact-copy"><span className="section-number">05</span><p className="section-kicker">LET'S CONNECT</p><h2>Have an idea?<br/><span>Let's build it.</span></h2><p>AI products, intelligent automation, full-stack systems and engineering opportunities.</p></div><form className="contact-form" onSubmit={submit}><div className="form-title"><span>START A CONVERSATION</span><b>Tell me what you're building.</b></div><div className="form-row"><input required value={form.fullname} onChange={e=>setForm({...form,fullname:e.target.value})} placeholder="Your name"/><input required type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="Email address"/></div><input value={form.mobile} onChange={e=>setForm({...form,mobile:e.target.value})} placeholder="Phone number"/><textarea required rows="5" value={form.message} onChange={e=>setForm({...form,message:e.target.value})} placeholder="Project, role or idea"/><button className="primary-btn send-btn" disabled={sending}>{sending?'SENDING…':<>Send message <Send size={16}/></>}</button>{status.message&&<div className={`form-status ${status.type}`}>{status.message}</div>}</form></div></section>
+    </main>
+    <footer className="footer container"><div className="footer-main"><div className="footer-brand"><img src={PROFILE_IMAGE} alt="Nithish Kumar"/><div><strong>NITHISH KUMAR</strong><span>AI Engineer · Full Stack Developer</span></div></div><div className="footer-actions"><button onClick={()=>setLegal('privacy')}>Privacy</button><button onClick={()=>setLegal('terms')}>Terms</button><button onClick={()=>go('home')}>Back to top <ArrowUpRight size={13}/></button></div></div><div className="footer-bottom"><span>© 2026 Nithish Kumar. All rights reserved.</span><span>AI · AUTOMATION · SOFTWARE</span></div></footer>
+    {legal&&<div className="legal-backdrop" onClick={()=>setLegal(null)}><div className="legal-modal" role="dialog" aria-modal="true" onClick={e=>e.stopPropagation()}><button className="legal-close" onClick={()=>setLegal(null)}><X size={17}/></button><p className="section-kicker">{legal==='privacy'?'PRIVACY':'TERMS'}</p><h2>{legal==='privacy'?'Privacy Policy':'Terms of Use'}</h2>{legal==='privacy'?<><p>This portfolio collects only information you choose to submit through the contact form, such as your name, email, phone number and message, for responding to your enquiry.</p><p>No personal information is intentionally sold or shared for advertising. Do not submit passwords, payment information or other sensitive credentials.</p></>:<><p>This website is a personal portfolio. Project names, descriptions and technologies are presented for professional context and may change as work evolves.</p><p>Content is provided for general informational purposes. Contact information submitted through the form is intended for communication about your enquiry.</p></>}<div className="legal-rule"/><button className="ghost-btn" onClick={()=>setLegal(null)}>Close</button></div></div>}
+  </div>;
 }
-
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(<App/>);
